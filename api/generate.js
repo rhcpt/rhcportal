@@ -1,15 +1,14 @@
 // api/generate.js
 // Vercel API Route — proxy para a API da Anthropic
-// Resolve o problema de CORS e guarda a API key no servidor
 
 export default async function handler(req, res) {
-  // Apenas aceita POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const body = req.body;
+    // Parse body correctly whether it arrives as string or object
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -18,10 +17,18 @@ export default async function handler(req, res) {
         'x-api-key': process.env.ANTHROPIC_API_KEY,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({
+        model: body.model || 'claude-3-5-sonnet-20241022',
+        max_tokens: body.max_tokens || 8000,
+        messages: body.messages
+      })
     });
 
     const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Anthropic API error:', JSON.stringify(data));
+    }
 
     return res.status(response.status).json(data);
 
