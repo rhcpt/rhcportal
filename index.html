@@ -1,0 +1,2469 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+</head>
+<body>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans, system-ui, sans-serif); }
+  :root {
+    --rhc-green: #5DCAA5;
+    --rhc-green-light: #E1F5EE;
+    --rhc-green-dark: #0F6E56;
+    --rhc-green-mid: #1D9E75;
+    --rhc-dark: #111;
+    --rhc-border: rgba(93,202,165,0.25);
+  }
+  body { background: var(--rhc-dark); color: #e8e8e8; min-height: 100vh; }
+
+  /* NAV */
+  .nav { background: #0a0a0a; border-bottom: 1px solid var(--rhc-border); padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 16px; position: sticky; top: 0; z-index: 100; }
+  .nav-logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 500; color: var(--rhc-green); letter-spacing: 1px; }
+  .nav-logo span { color: #fff; font-size: 11px; background: var(--rhc-green-dark); padding: 2px 7px; border-radius: 4px; letter-spacing: 0; font-weight: 400; }
+  .nav-tabs { display: flex; gap: 4px; margin-left: 24px; }
+  .nav-tab { padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; color: #aaa; border: none; background: none; transition: all .15s; }
+  .nav-tab:hover { color: #fff; background: rgba(255,255,255,.06); }
+  .nav-tab.active { color: var(--rhc-green); background: rgba(93,202,165,.1); }
+  .nav-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--rhc-green-dark); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--rhc-green); font-weight: 500; }
+  .nav-user { font-size: 13px; color: #ccc; }
+
+  /* PAGES */
+  .page { display: none; padding: 24px; }
+  .page.active { display: block; }
+
+  /* AUTH PAGE */
+  .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #0a0a0a; }
+  .auth-card { background: #141414; border: 1px solid var(--rhc-border); border-radius: 16px; padding: 40px 36px; width: 380px; }
+  .auth-logo { text-align: center; margin-bottom: 28px; }
+  .auth-logo-mark { font-size: 32px; font-weight: 500; color: var(--rhc-green); letter-spacing: 2px; }
+  .auth-logo-sub { font-size: 11px; color: #555; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+  .auth-tabs { display: flex; margin-bottom: 24px; background: #0d0d0d; border-radius: 8px; padding: 3px; }
+  .auth-tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; cursor: pointer; border-radius: 6px; color: #666; border: none; background: none; transition: all .15s; }
+  .auth-tab.active { background: var(--rhc-green-dark); color: #fff; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 12px; color: #888; margin-bottom: 6px; display: block; }
+  .form-input { width: 100%; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #eee; outline: none; transition: border .15s; }
+  .form-input:focus { border-color: var(--rhc-green-dark); }
+  .form-select { width: 100%; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #eee; outline: none; }
+  .btn-primary { width: 100%; padding: 11px; background: var(--rhc-green-mid); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; margin-top: 8px; }
+  .btn-primary:hover { background: var(--rhc-green); }
+
+  /* DASHBOARD */
+  .page-header { margin-bottom: 24px; display: flex; align-items: flex-start; justify-content: space-between; }
+  .page-title { font-size: 20px; font-weight: 500; color: #fff; }
+  .page-sub { font-size: 13px; color: #666; margin-top: 4px; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .metric-card { background: #141414; border: 1px solid var(--rhc-border); border-radius: 12px; padding: 16px 18px; transition: border-color .2s; }
+  .metric-card:hover { border-color: rgba(93,202,165,.5); }
+  .metric-label { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .metric-value { font-size: 28px; font-weight: 500; color: var(--rhc-green); transition: all .3s; }
+  .metric-trend { font-size: 11px; color: #555; margin-top: 4px; }
+  .metric-trend.up { color: var(--rhc-green-dark); }
+  .metric-trend.warn { color: #efb84a; }
+  .section-title { font-size: 14px; font-weight: 500; color: #ccc; margin-bottom: 12px; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .panel { background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 18px; }
+  .cand-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #1a1a1a; }
+  .cand-row:last-child { border-bottom: none; }
+  .cand-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--rhc-green-dark); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--rhc-green); flex-shrink: 0; }
+  .cand-name { font-size: 13px; color: #ddd; font-weight: 500; }
+  .cand-role { font-size: 11px; color: #666; }
+  .score-badge { margin-left: auto; font-size: 12px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .score-high { background: rgba(93,202,165,.15); color: var(--rhc-green); }
+  .score-mid { background: rgba(186,117,23,.15); color: #efb84a; }
+  .score-low { background: rgba(226,75,74,.12); color: #e26b6b; }
+  .activity-item { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid #1a1a1a; }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--rhc-green-dark); margin-top: 4px; flex-shrink: 0; }
+  .activity-text { font-size: 12px; color: #bbb; }
+  .activity-time { font-size: 11px; color: #555; margin-top: 2px; }
+
+  /* TESTS PAGE */
+  .tests-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .btn-create { background: var(--rhc-green-mid); border: none; color: #fff; padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+  .btn-create:hover { background: var(--rhc-green); }
+  .test-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .test-card { background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; padding: 18px; cursor: pointer; transition: border-color .15s; }
+  .test-card:hover { border-color: var(--rhc-green-dark); }
+  .test-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 10px; }
+  .test-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(93,202,165,.1); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .test-status { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+  .test-status.active { background: rgba(93,202,165,.15); color: var(--rhc-green); }
+  .test-status.draft { background: #222; color: #666; }
+  .test-name { font-size: 14px; font-weight: 500; color: #ddd; margin-bottom: 4px; }
+  .test-meta { font-size: 12px; color: #555; }
+  .test-footer { display: flex; gap: 12px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #1e1e1e; }
+  .test-stat { font-size: 11px; color: #666; }
+  .test-stat span { color: #aaa; font-weight: 500; }
+
+  /* MODAL */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 200; align-items: center; justify-content: center; }
+  .modal-bg.open { display: flex; }
+  .modal { background: #141414; border: 1px solid var(--rhc-border); border-radius: 16px; padding: 28px; width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .modal-title { font-size: 16px; font-weight: 500; color: #fff; }
+  .modal-close { background: none; border: none; color: #555; cursor: pointer; font-size: 20px; line-height: 1; }
+  .modal-close:hover { color: #ccc; }
+  .modal-section { margin-bottom: 18px; }
+  .modal-section-title { font-size: 12px; color: var(--rhc-green-dark); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; font-weight: 500; }
+  .question-block { background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 8px; padding: 14px; margin-bottom: 8px; }
+  .question-text { font-size: 13px; color: #ccc; margin-bottom: 8px; }
+  .question-type { font-size: 11px; color: #555; }
+  .btn-generate { background: rgba(93,202,165,.1); border: 1px solid var(--rhc-green-dark); color: var(--rhc-green); padding: 9px 18px; border-radius: 8px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; width: 100%; justify-content: center; margin-top: 10px; }
+  .btn-generate:hover { background: rgba(93,202,165,.18); }
+  .loading-dots { display: inline-flex; gap: 4px; }
+  .loading-dots span { width: 5px; height: 5px; background: var(--rhc-green); border-radius: 50%; animation: bounce .8s infinite; }
+  .loading-dots span:nth-child(2) { animation-delay: .15s; }
+  .loading-dots span:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  @keyframes flashGreen { 0%,100% { color: var(--rhc-green); } 50% { color: #fff; } }
+  .metric-flash { animation: flashGreen .5s ease; }
+
+  /* CANDIDATES PAGE */
+  .filter-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+  .filter-input { flex: 1; background: #141414; border: 1px solid #222; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #eee; outline: none; }
+  .filter-input:focus { border-color: var(--rhc-green-dark); }
+  .filter-select { background: #141414; border: 1px solid #222; border-radius: 8px; padding: 9px 14px; font-size: 13px; color: #888; outline: none; }
+  .cands-table { background: #141414; border: 1px solid #1e1e1e; border-radius: 12px; overflow: hidden; }
+  .table-head { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 140px; padding: 10px 8px 10px 16px; background: #111; font-size: 11px; color: #555; text-transform: uppercase; letter-spacing: .5px; }
+  .table-row { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr 140px; padding: 12px 8px 12px 16px; border-top: 1px solid #1a1a1a; align-items: center; }
+  .table-row:hover { background: rgba(255,255,255,.02); }
+  .table-empty { padding: 40px; text-align: center; color: #555; font-size: 13px; }
+  .cand-info { display: flex; align-items: center; gap: 10px; }
+  .score-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .score-bar { height: 4px; border-radius: 2px; flex: 1; background: #222; max-width: 60px; }
+  .score-bar-fill { height: 100%; border-radius: 2px; }
+  .action-btn { background: none; border: 1px solid #2a2a2a; border-radius: 6px; padding: 5px 8px; font-size: 11px; color: #888; cursor: pointer; transition: all .15s; white-space: nowrap; }
+  .action-btn:hover { border-color: var(--rhc-green-dark); color: var(--rhc-green); }
+  .action-btn.danger:hover { border-color: #e26b6b; color: #e26b6b; }
+  .status-pill { font-size: 11px; padding: 3px 9px; border-radius: 20px; display: inline-block; }
+
+  /* ADD CANDIDATE MODAL */
+  .modal-wide { width: 560px; }
+
+  /* EVAL MODAL */
+  .eval-score-ring { width: 90px; height: 90px; border-radius: 50%; border: 3px solid var(--rhc-green-dark); display: flex; align-items: center; justify-content: center; flex-direction: column; margin: 0 auto 16px; }
+  .eval-score-num { font-size: 26px; font-weight: 500; color: var(--rhc-green); }
+  .eval-score-label { font-size: 10px; color: #555; }
+  .eval-dimension { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .eval-dim-label { font-size: 12px; color: #888; width: 120px; flex-shrink: 0; }
+  .eval-dim-bar { flex: 1; height: 6px; background: #1e1e1e; border-radius: 3px; overflow: hidden; }
+  .eval-dim-fill { height: 100%; border-radius: 3px; background: var(--rhc-green-mid); }
+  .eval-dim-val { font-size: 12px; color: #666; width: 32px; text-align: right; }
+  .ai-verdict { background: rgba(93,202,165,.06); border: 1px solid rgba(93,202,165,.2); border-radius: 8px; padding: 14px; margin-top: 14px; }
+  .ai-verdict-label { font-size: 11px; color: var(--rhc-green-dark); font-weight: 500; margin-bottom: 6px; }
+  .ai-verdict-text { font-size: 13px; color: #bbb; line-height: 1.6; }
+
+  /* JOBS */
+  .tag { font-size: 10px; padding: 2px 7px; border-radius: 4px; background: rgba(93,202,165,.1); color: var(--rhc-green-dark); font-weight: 500; }
+
+  /* CHATBOT */
+  .chatbot-btn { position: fixed; bottom: 24px; right: 24px; width: 50px; height: 50px; border-radius: 50%; background: var(--rhc-green-mid); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 300; transition: transform .15s; box-shadow: 0 4px 20px rgba(93,202,165,.25); }
+  .chatbot-btn:hover { transform: scale(1.08); }
+  .chatbot-btn svg { width: 22px; height: 22px; fill: #fff; }
+  .chatbot-panel { position: fixed; bottom: 84px; right: 24px; width: 320px; background: #141414; border: 1px solid var(--rhc-border); border-radius: 16px; z-index: 300; display: none; flex-direction: column; overflow: hidden; }
+  .chatbot-panel.open { display: flex; }
+  .chatbot-header { background: #0d0d0d; padding: 14px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e1e1e; }
+  .chatbot-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--rhc-green-dark); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: var(--rhc-green); flex-shrink: 0; }
+  .chatbot-title { font-size: 13px; font-weight: 500; color: #fff; }
+  .chatbot-status { font-size: 11px; color: var(--rhc-green-dark); }
+  .chatbot-close { margin-left: auto; background: none; border: none; color: #555; cursor: pointer; font-size: 16px; }
+  .chatbot-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; max-height: 300px; min-height: 200px; }
+  .chat-msg { max-width: 85%; padding: 9px 13px; border-radius: 10px; font-size: 13px; line-height: 1.5; }
+  .chat-msg.bot { background: #1e1e1e; color: #ccc; align-self: flex-start; border-bottom-left-radius: 2px; }
+  .chat-msg.user { background: var(--rhc-green-dark); color: #e8f8f3; align-self: flex-end; border-bottom-right-radius: 2px; }
+  .chatbot-input-row { padding: 12px; border-top: 1px solid #1e1e1e; display: flex; gap: 8px; }
+  .chatbot-input { flex: 1; background: #0d0d0d; border: 1px solid #222; border-radius: 8px; padding: 8px 12px; font-size: 13px; color: #eee; outline: none; }
+  .chatbot-input:focus { border-color: var(--rhc-green-dark); }
+  .chatbot-send { background: var(--rhc-green-mid); border: none; border-radius: 8px; width: 34px; height: 34px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .chatbot-send:hover { background: var(--rhc-green); }
+  .chatbot-send svg { width: 14px; height: 14px; fill: #fff; }
+  .chatbot-suggestions { display: flex; flex-wrap: wrap; gap: 5px; padding: 0 14px 10px; }
+  .suggestion-chip { font-size: 11px; padding: 4px 10px; background: rgba(93,202,165,.08); border: 1px solid rgba(93,202,165,.2); border-radius: 20px; color: var(--rhc-green-dark); cursor: pointer; transition: all .15s; }
+  .suggestion-chip:hover { background: rgba(93,202,165,.18); color: var(--rhc-green); }
+  .typing-indicator { display: flex; gap: 4px; padding: 9px 13px; background: #1e1e1e; border-radius: 10px; border-bottom-left-radius: 2px; width: fit-content; }
+  .typing-dot { width: 5px; height: 5px; background: #555; border-radius: 50%; animation: bounce .8s infinite; }
+  .typing-dot:nth-child(2) { animation-delay: .15s; }
+  .typing-dot:nth-child(3) { animation-delay: .3s; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%) translateY(12px); background: #1a2e27; border: 1px solid var(--rhc-green-dark); border-radius: 8px; padding: 10px 18px; font-size: 13px; color: var(--rhc-green); opacity: 0; transition: opacity .25s, transform .25s; pointer-events: none; z-index: 500; white-space: nowrap; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* PROFILE DRAWER */
+  .profile-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 400; }
+  .profile-overlay.open { display: block; }
+  .profile-drawer { position: fixed; top: 0; right: -360px; width: 320px; height: 100vh; background: #141414; border-left: 1px solid var(--rhc-border); z-index: 401; display: flex; flex-direction: column; transition: right .25s cubic-bezier(.4,0,.2,1); overflow-y: auto; }
+  .profile-drawer.open { right: 0; }
+  .profile-drawer-header { padding: 20px 20px 16px; border-bottom: 1px solid #1e1e1e; display: flex; align-items: center; justify-content: space-between; }
+  .profile-drawer-title { font-size: 15px; font-weight: 500; color: #fff; }
+  .profile-drawer-close { background: none; border: none; color: #555; cursor: pointer; font-size: 20px; line-height: 1; padding: 0; }
+  .profile-drawer-close:hover { color: #ccc; }
+  .profile-body { padding: 28px 24px; display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .profile-avatar-wrap { position: relative; width: 96px; height: 96px; margin-bottom: 24px; }
+  .profile-avatar-img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 2px solid var(--rhc-green-dark); display: none; }
+  .profile-avatar-initials { width: 96px; height: 96px; border-radius: 50%; background: var(--rhc-green-dark); display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 500; color: var(--rhc-green); border: 2px solid var(--rhc-green-dark); }
+  .profile-avatar-upload { position: absolute; bottom: 2px; right: 2px; width: 26px; height: 26px; border-radius: 50%; background: var(--rhc-green-mid); border: 2px solid #141414; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .profile-avatar-upload:hover { background: var(--rhc-green); }
+  .profile-avatar-upload svg { width: 12px; height: 12px; fill: #fff; }
+  .profile-field { width: 100%; margin-bottom: 18px; }
+  .profile-field-label { font-size: 11px; color: #666; margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: .4px; }
+  .profile-field-input { width: 100%; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #eee; outline: none; transition: border .15s; }
+  .profile-field-input:focus { border-color: var(--rhc-green-dark); }
+  .profile-field-static { width: 100%; background: #0a0a0a; border: 1px solid #1a1a1a; border-radius: 8px; padding: 10px 14px; font-size: 14px; color: #555; cursor: not-allowed; }
+  .profile-save-btn { width: 100%; padding: 11px; background: var(--rhc-green-mid); border: none; border-radius: 8px; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .15s; margin-top: 4px; }
+  .profile-save-btn:hover { background: var(--rhc-green); }
+
+  /* Nav avatar with photo */
+  .nav-avatar-img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; border: 1px solid var(--rhc-green-dark); display: none; }
+  .nav-user-btn { background: none; border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 0; color: #ccc; font-size: 13px; transition: color .15s; }
+  .nav-user-btn:hover { color: var(--rhc-green); }
+</style>
+
+<!-- AUTH -->
+<div id="page-auth" style="display:flex;">
+  <div class="auth-wrap" style="flex:1;">
+    <div class="auth-card">
+      <div class="auth-logo">
+        <div class="auth-logo-mark">RHC</div>
+        <div class="auth-logo-sub">Recruitment Platform</div>
+      </div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</button>
+        <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Registar</button>
+      </div>
+
+      <!-- LOGIN FORM -->
+      <div id="login-form">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="login-email" type="email" placeholder="recruiter@rhc.pt" onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Palavra-passe</label>
+          <input class="form-input" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+        </div>
+        <div id="login-error" style="display:none;font-size:12px;color:#e26b6b;margin-bottom:10px;padding:8px 12px;background:rgba(226,107,107,.08);border-radius:6px;border:1px solid rgba(226,107,107,.2);"></div>
+        <button class="btn-primary" id="btn-login" onclick="doLogin()">Entrar na plataforma</button>
+        <p id="login-hint" style="font-size:11px;color:#444;text-align:center;margin-top:14px;">Sem conta? Clique em <span style="color:var(--rhc-green-dark);cursor:pointer;" onclick="switchAuthTab('register')">Registar</span></p>
+      </div>
+
+      <!-- REGISTER FORM -->
+      <div id="register-form" style="display:none;">
+        <div class="form-group">
+          <label class="form-label">Nome completo</label>
+          <input class="form-input" id="reg-name" type="text" placeholder="ex: Ana Silva" onkeydown="if(event.key==='Enter')doRegister()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email profissional</label>
+          <input class="form-input" id="reg-email" type="email" placeholder="ana@empresa.pt" onkeydown="if(event.key==='Enter')doRegister()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Empresa</label>
+          <input class="form-input" id="reg-company" type="text" placeholder="RHC Lda." onkeydown="if(event.key==='Enter')doRegister()" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Palavra-passe</label>
+          <input class="form-input" id="reg-password" type="password" placeholder="Mínimo 6 caracteres" onkeydown="if(event.key==='Enter')doRegister()" />
+        </div>
+        <div id="reg-error" style="display:none;font-size:12px;color:#e26b6b;margin-bottom:10px;padding:8px 12px;background:rgba(226,107,107,.08);border-radius:6px;border:1px solid rgba(226,107,107,.2);"></div>
+        <button class="btn-primary" id="btn-register" onclick="doRegister()">Criar conta e entrar</button>
+        <p style="font-size:11px;color:#444;text-align:center;margin-top:14px;">Já tem conta? <span style="color:var(--rhc-green-dark);cursor:pointer;" onclick="switchAuthTab('login')">Entrar</span></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="page-main" style="display:none; flex-direction:column; min-height:100vh;">
+  <nav class="nav">
+    <div class="nav-logo">RHC <span>recruiter</span></div>
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="nav-tab" onclick="showTab('tests')">Testes IA</button>
+      <button class="nav-tab" onclick="showTab('candidates')">Candidatos</button>
+      <button class="nav-tab" onclick="showTab('jobs')">Vagas</button>
+    </div>
+    <div class="nav-right">
+      <button class="nav-user-btn" onclick="openProfileDrawer()">
+        <span id="nav-username">Ana Silva</span>
+        <img id="nav-avatar-img" class="nav-avatar-img" src="" alt="" />
+        <div class="nav-avatar" id="nav-avatar">AS</div>
+      </button>
+      <button onclick="doLogout()" style="background:none;border:none;color:#555;cursor:pointer;font-size:12px;padding:4px 8px;">sair</button>
+    </div>
+  </nav>
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="tab-dashboard">
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="dash-greeting">Bom dia, Ana 👋</div>
+        <div class="page-sub" id="dash-date">A carregar...</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn-create" onclick="openAddCandidate()" style="font-size:12px;padding:8px 14px;">+ Adicionar candidato</button>
+      </div>
+    </div>
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-label">Candidatos ativos</div>
+        <div class="metric-value" id="metric-candidates">—</div>
+        <div class="metric-trend up" id="metric-candidates-trend">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Testes realizados</div>
+        <div class="metric-value" id="metric-tests">—</div>
+        <div class="metric-trend up" id="metric-tests-trend">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avaliados por IA</div>
+        <div class="metric-value" id="metric-evaluated">—</div>
+        <div class="metric-trend" id="metric-evaluated-trend">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Vagas abertas</div>
+        <div class="metric-value" id="metric-jobs">—</div>
+        <div class="metric-trend warn" id="metric-jobs-trend">—</div>
+      </div>
+      <div class="metric-card" style="cursor:pointer;" onclick="showTab('tests')">
+        <div class="metric-label">Testes IA ativos</div>
+        <div class="metric-value" id="metric-active-tests">—</div>
+        <div class="metric-trend up" id="metric-active-tests-trend">—</div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="panel">
+        <div class="section-title">Top candidatos por compatibilidade</div>
+        <div id="dash-top-candidates"><div style="font-size:13px;color:#444;padding:20px 0;text-align:center;">Sem candidatos ainda</div></div>
+      </div>
+      <div class="panel">
+        <div class="section-title">Atividade recente</div>
+        <div id="dash-activity"><div style="font-size:13px;color:#444;padding:20px 0;text-align:center;">Sem atividade</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TESTS -->
+  <div class="page" id="tab-tests">
+    <div class="tests-header">
+      <div>
+        <div class="page-title">Testes gerados por IA</div>
+        <div class="page-sub" style="font-size:13px;color:#666;margin-top:4px;">Crie testes personalizados automaticamente para qualquer função &nbsp;·&nbsp; <span id="tests-live-count" style="color:var(--rhc-green-dark);"></span></div>
+      </div>
+      <button class="btn-create" onclick="openCreateTest()">+ Gerar novo teste</button>
+    </div>
+    <div class="test-grid" id="tests-grid">
+      <!-- rendered by JS -->
+    </div>
+  </div>
+
+  <!-- CANDIDATES -->
+  <div class="page" id="tab-candidates">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Candidatos</div>
+        <div class="page-sub">Todos os candidatos e resultados de avaliação</div>
+      </div>
+      <button class="btn-create" onclick="openAddCandidate()">+ Adicionar candidato</button>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" id="cand-search" placeholder="🔍  Pesquisar por nome ou função..." oninput="renderCandidatesTable()" />
+      <select class="filter-select" id="cand-filter-status" onchange="renderCandidatesTable()">
+        <option value="">Todos os estados</option>
+        <option value="Aprovado">Aprovado</option>
+        <option value="Em análise">Em análise</option>
+        <option value="Em espera">Em espera</option>
+        <option value="Reprovado">Reprovado</option>
+      </select>
+      <select class="filter-select" id="cand-filter-job" onchange="renderCandidatesTable()">
+        <option value="">Todas as vagas</option>
+      </select>
+    </div>
+    <div class="cands-table">
+      <div class="table-head">
+        <div>Candidato</div><div>Vaga</div><div>Compatibilidade</div><div>Teste</div><div>Estado</div><div></div>
+      </div>
+      <div id="candidates-body"></div>
+    </div>
+  </div>
+
+  <!-- JOBS -->
+  <div class="page" id="tab-jobs">
+    <div class="tests-header">
+      <div>
+        <div class="page-title">Vagas abertas</div>
+        <div class="page-sub" style="font-size:13px;color:#666;margin-top:4px;">Gerencie as suas posições em aberto</div>
+      </div>
+      <button class="btn-create" onclick="openAddJob()">+ Nova vaga</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;" id="jobs-grid"></div>
+  </div>
+</div>
+
+<!-- MODAL: INVITE CANDIDATE -->
+<div class="modal-bg" id="modal-add-cand">
+  <div class="modal modal-wide">
+
+    <!-- SUCCESS STATE -->
+    <div id="invite-success" style="display:none;padding:12px 0 8px;">
+      <div style="text-align:center;padding:20px 0 24px;">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(93,202,165,.1);border:2px solid var(--rhc-green-dark);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px;">✉</div>
+        <div style="font-size:17px;font-weight:500;color:#fff;margin-bottom:8px;">Convite enviado!</div>
+        <div style="font-size:13px;color:#888;line-height:1.6;" id="invite-success-msg"></div>
+        <div style="margin-top:12px;display:inline-block;background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);border-radius:20px;padding:4px 14px;font-size:12px;color:#a78bfa;">
+          Candidato pendente — aguarda aceitação
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button onclick="resetInviteForm()" style="flex:1;padding:10px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#888;font-size:13px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#444';this.style.color='#ccc';" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#888';">Enviar outro convite</button>
+        <button onclick="closeModal('modal-add-cand')" class="btn-primary" style="flex:1;margin-top:0;">Fechar</button>
+      </div>
+    </div>
+
+    <!-- FORM STATE -->
+    <div id="invite-form">
+      <div class="modal-header" style="margin-bottom:0;padding-bottom:16px;">
+        <div>
+          <div class="modal-title">Gerar link de convite</div>
+          <div style="font-size:12px;color:#555;margin-top:3px;">Partilha o link directamente com o candidato — por email, WhatsApp ou LinkedIn.</div>
+        </div>
+        <button class="modal-close" onclick="closeModal('modal-add-cand')">×</button>
+      </div>
+
+      <div style="border-top:1px solid #1e1e1e;margin-bottom:20px;"></div>
+
+      <div class="form-group">
+        <label class="form-label">Empresa</label>
+        <div style="background:#0d0d0d;border:1px solid rgba(93,202,165,.2);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--rhc-green);display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;">🏢</span>
+          <span id="invite-company-display">—</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Vaga</label>
+        <select class="form-select" id="new-cand-job" onchange="updateInvitePreview()">
+          <option value="">Seleccionar vaga...</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:20px;">
+        <label class="form-label">Teste associado</label>
+        <select class="form-select" id="new-cand-test" onchange="updateInvitePreview()"></select>
+      </div>
+
+      <!-- Link display -->
+      <div id="invite-link-box" style="display:none;background:#0d0d0d;border:1px solid rgba(93,202,165,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+        <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Link de convite</div>
+        <div id="invite-link-text" style="font-size:12px;color:#5DCAA5;word-break:break-all;line-height:1.6;margin-bottom:12px;"></div>
+        <button onclick="copyGeneratedLink()" style="background:var(--rhc-green-dark);border:1px solid rgba(93,202,165,.3);border-radius:8px;color:var(--rhc-green);font-size:13px;font-weight:600;cursor:pointer;padding:10px 20px;width:100%;transition:all .15s;" onmouseover="this.style.background='rgba(93,202,165,.2)'" onmouseout="this.style.background='var(--rhc-green-dark)'">
+          📋 Copiar link
+        </button>
+      </div>
+
+      <button class="btn-primary" id="btn-send-invite" onclick="sendInvite()" style="margin-top:0;">
+        <span id="invite-btn-text">🔗&nbsp; Gerar link</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL: CONFIRM -->
+<div class="modal-bg" id="modal-confirm">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <div class="modal-title">⚠️ Confirmar acção</div>
+      <button class="modal-close" onclick="closeModal('modal-confirm')">×</button>
+    </div>
+    <p id="confirm-modal-msg" style="font-size:14px;color:#aaa;line-height:1.6;margin-bottom:24px;"></p>
+    <div style="display:flex;gap:10px;">
+      <button id="confirm-modal-btn" class="btn-primary" style="flex:1;margin-top:0;background:#e26b6b;border-color:#e26b6b;">Sim, remover</button>
+      <button onclick="closeModal('modal-confirm')" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#888;font-size:13px;cursor:pointer;font-family:var(--font-sans);">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CANDIDATE PROFILE -->
+<div class="modal-bg" id="modal-candidate-profile">
+  <div class="modal" style="width:620px;max-height:85vh;overflow-y:auto;">
+    <div class="modal-header" style="position:sticky;top:0;background:var(--surface);z-index:2;padding-bottom:16px;border-bottom:1px solid #1e1e1e;">
+      <div>
+        <div class="modal-title" id="cp-title">Perfil do candidato</div>
+        <div style="font-size:12px;color:#555;margin-top:3px;" id="cp-sub">—</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-candidate-profile')">×</button>
+    </div>
+    <div id="cp-body" style="padding-top:20px;"></div>
+    <div style="display:flex;gap:10px;margin-top:20px;position:sticky;bottom:0;background:var(--surface);padding-top:16px;border-top:1px solid #1e1e1e;">
+      <button id="cp-approve-btn" class="btn-primary" style="flex:2;margin-top:0;" onclick="approveCandidateFromProfile()">✓ Aprovar — dar acesso ao teste</button>
+      <button onclick="closeModal('modal-candidate-profile')" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#888;font-size:13px;cursor:pointer;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: INVITE LINK -->
+<div class="modal-bg" id="modal-invite-link">
+  <div class="modal" style="width:500px;">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">🔗 Link de convite</div>
+        <div style="font-size:12px;color:#555;margin-top:3px;">Partilha este link directamente com o candidato</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-invite-link')">×</button>
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:18px;">
+      <div style="flex:1;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#555;margin-bottom:4px;">Candidato</div>
+        <div style="font-size:13px;color:#ddd;" id="invite-link-name">—</div>
+      </div>
+      <div style="flex:1;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;color:#555;margin-bottom:4px;">Email</div>
+        <div style="font-size:13px;color:#ddd;" id="invite-link-email">—</div>
+      </div>
+    </div>
+    <div style="background:#0d0d0d;border:1px solid rgba(93,202,165,.2);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--rhc-green-dark);margin-bottom:8px;font-weight:500;">Link de acesso ao portal do candidato</div>
+      <div id="invite-link-url" style="font-size:12px;color:#888;word-break:break-all;line-height:1.6;">—</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="copyInviteLink()" class="btn-primary" style="flex:2;margin-top:0;">📋 Copiar link</button>
+      <button onclick="closeModal('modal-invite-link')" style="flex:1;padding:11px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#888;font-size:13px;cursor:pointer;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: ADD JOB -->
+<div class="modal-bg" id="modal-add-job">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Nova vaga</div>
+      <button class="modal-close" onclick="closeModal('modal-add-job')">×</button>
+    </div>
+    <div class="form-group"><label class="form-label">Título da vaga</label><input class="form-input" id="new-job-title" placeholder="ex: Engenheiro Backend Python" /></div>
+    <div class="form-group"><label class="form-label">Localização</label><input class="form-input" id="new-job-location" placeholder="ex: Lisboa, Híbrido" /></div>
+    <div class="form-group"><label class="form-label">Regime</label>
+      <select class="form-select" id="new-job-type"><option>Tempo inteiro</option><option>Part-time</option><option>Contrato</option><option>Estágio</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Urgência</label>
+      <select class="form-select" id="new-job-urgency"><option>Ativo</option><option>Urgente</option><option>Pausado</option></select>
+    </div>
+    <div class="form-group"><label class="form-label">Teste associado</label>
+      <select class="form-select" id="new-job-test"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Perfil ideal pretendido <span style="color:var(--rhc-green);font-size:10px;font-weight:500;">• usado pela IA na triagem</span></label>
+      <textarea class="form-input" id="new-job-profile" rows="3" placeholder="ex: Procuramos uma pessoa proactiva, com licenciatura em Gestão de RH ou similar, pelo menos 1 ano de experiência em recrutamento, disponível para trabalhar em Porto, com pretensão salarial até 1.400€..." style="resize:vertical;min-height:80px;line-height:1.6;"></textarea>
+    </div>
+    <button class="btn-primary" onclick="addJob()">Publicar vaga</button>
+  </div>
+</div>
+
+<!-- MODAL: CREATE TEST -->
+<div class="modal-bg" id="modal-create">
+  <div class="modal" style="width:560px;">
+    <div class="modal-header">
+      <div class="modal-title">Gerar teste com IA</div>
+      <button class="modal-close" onclick="closeModal('modal-create')">×</button>
+    </div>
+    <div class="modal-section">
+      <div class="modal-section-title">Configuração</div>
+      <div class="form-group"><label class="form-label">Função/Cargo</label><input class="form-input" id="gen-role" placeholder="ex: Marketing, Vendas, Engenheiro, RH..." /></div>
+      <div class="form-group"><label class="form-label">Nível</label>
+        <select class="form-select" id="gen-level"><option>Trainee</option><option>Júnior</option><option selected>Sénior</option><option>Diretor</option><option>COO</option><option>CFO</option><option>CEO</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">Nº de questões</label>
+        <select class="form-select" id="gen-nq">
+          <option value="10">10 questões</option>
+          <option value="20">20 questões</option>
+          <option value="30" selected>30 questões</option>
+          <option value="40">40 questões</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Duração (minutos)</label><input class="form-input" id="gen-duration" type="number" value="45" /></div>
+    </div>
+    <button class="btn-generate" id="btn-gen" onclick="generateTest()">
+      <span id="gen-icon">✦</span> <span id="gen-text">Gerar questões com IA</span>
+    </button>
+    <div id="gen-result" style="display:none;margin-top:16px;">
+      <div class="modal-section-title" style="margin-bottom:8px;" id="gen-result-title">Questões geradas</div>
+      <div id="questions-list"></div>
+      <button class="btn-primary" style="margin-top:12px;" onclick="saveGeneratedTest()">Publicar teste</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: BASE MODEL PREVIEW -->
+<div class="modal-bg" id="modal-base-preview">
+  <div class="modal" style="width:580px;">
+    <div class="modal-header">
+      <div class="modal-title">Modelo base — Perfil comportamental (10 questões)</div>
+      <button class="modal-close" onclick="closeModal('modal-base-preview')">×</button>
+    </div>
+    <div style="background:rgba(93,202,165,.05);border:1px solid rgba(93,202,165,.15);border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#888;line-height:1.6;">
+      Estas 10 perguntas avaliam o perfil comportamental e cultural do candidato. Cada resposta é classificada automaticamente pela IA para gerar um score de fit com a função e cultura da empresa.
+    </div>
+    <div id="base-questions-list"></div>
+    <button class="btn-primary" style="margin-top:4px;" onclick="closeModal('modal-base-preview')">Fechar pré-visualização</button>
+  </div>
+</div>
+
+<!-- MODAL: TEST DETAIL -->
+<div class="modal-bg" id="modal-test">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-test-title">Detalhes do teste</div>
+      <button class="modal-close" onclick="closeModal('modal-test')">×</button>
+    </div>
+    <div id="modal-test-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: EVAL -->
+<div class="modal-bg" id="modal-eval">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="eval-title">Avaliação IA</div>
+      <button class="modal-close" onclick="closeModal('modal-eval')">×</button>
+    </div>
+    <div id="eval-body"></div>
+  </div>
+</div>
+
+<!-- MODAL: EMAILJS CONFIG -->
+<!-- PROFILE DRAWER -->
+<div class="profile-overlay" id="profile-overlay" onclick="closeProfileDrawer()"></div>
+<div class="profile-drawer" id="profile-drawer">
+  <div class="profile-drawer-header">
+    <div class="profile-drawer-title">O meu perfil</div>
+    <button class="profile-drawer-close" onclick="closeProfileDrawer()">×</button>
+  </div>
+  <div class="profile-body">
+    <!-- Photo -->
+    <div class="profile-avatar-wrap">
+      <img id="profile-photo-preview" class="profile-avatar-img" src="" alt="" />
+      <div class="profile-avatar-initials" id="profile-initials-big">AS</div>
+      <label class="profile-avatar-upload" title="Alterar foto" for="profile-photo-input">
+        <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      </label>
+      <input type="file" id="profile-photo-input" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)" />
+    </div>
+
+    <!-- Name (editable) -->
+    <div class="profile-field">
+      <label class="profile-field-label" for="profile-name-input">Nome</label>
+      <input class="profile-field-input" id="profile-name-input" type="text" placeholder="O seu nome" />
+    </div>
+
+    <!-- Email (read-only) -->
+    <div class="profile-field">
+      <label class="profile-field-label">Email</label>
+      <div class="profile-field-static" id="profile-email-display">recruiter@rhc.pt</div>
+    </div>
+
+    <!-- Company (read-only) -->
+    <div class="profile-field">
+      <label class="profile-field-label">Empresa</label>
+      <div class="profile-field-static" id="profile-company-display" style="color:var(--rhc-green);">—</div>
+    </div>
+
+    <button class="profile-save-btn" onclick="saveProfile()">Guardar alterações</button>
+
+    <button onclick="closeProfileDrawer()" style="width:100%;margin-top:10px;background:none;border:1px solid #2a2a2a;border-radius:8px;color:#666;font-size:13px;padding:10px;cursor:pointer;transition:all .15s;" onmouseover="this.style.borderColor='#444';this.style.color='#aaa';" onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#666';">Cancelar</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- CHATBOT -->
+<button class="chatbot-btn" id="chatbot-btn" onclick="toggleChat()" style="display:none;">
+  <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"/></svg>
+</button>
+<div class="chatbot-panel" id="chatbot-panel">
+  <div class="chatbot-header">
+    <div class="chatbot-avatar" style="background:#f0ede8;padding:2px;overflow:hidden;"><img src="data:image/png;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCACpAWoDASIAAhEBAxEB/8QAHQABAAMBAQEBAQEAAAAAAAAAAAQGCQgHBQECA//EAE0QAAECBAEIBAgHDwMFAAAAAAABAgMEBQYRBxYlVmSVotIIEiExExQYQVFhgZEJFSJScZKyIzI1NjdCc3R1lKGlsdHTF8HCM1VjcoL/xAAbAQEBAAIDAQAAAAAAAAAAAAAAAQIEAwYHBf/EADMRAQACAQMBBAgDCQAAAAAAAAABEQIDBBIFBiExkQcTIkFRYYGhMnGxFBUWFzOT0eHi/9oADAMBAAIRAxEAPwDpXMOxtTLc3ZB5RmHY2plubsg8pYwYWtK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlK5mHY2plubsg8ozDsbUy3N2QeUsYFlAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB5xlyyuUjJNI0ubq9Lnp9tRiRIcNJVWIrVYiKuPWVPnHo5yp8In+L1n/rcz9iGWIuUfQ8sizNVK/wDWg8w8sizNVK/9aDzHEp9WTtu4pyWZMydBqsxAiJiyLCk4j2uT1KiYKZ8YLdi+WRZmqlf+tB5h5ZFmaqV/60HmOP8ANK69WK1+4ReUZpXXqxWv3CLyjjBbsKH0yLJV33S1rha30t8Cq/bQttn9KDJRcMzClo9RnaFGiLg34zl0YzH1xGK5jU9blRDgeo0GuU6B4eoUaoycLHDrx5V8NuP0qh84cYLa4y8aDMy8OYl4sONBitR8OJDcjmvaqYoqKnYqKnnPAb56U9q2neFVtqbtutTExTZl8tEiwnQuo9WrhimLscCn/B/XpUp2BW7Hnpl0eVkoTZ2RR7lVYTVd1YjEx/NxVionmVXek566RP5c7z/a8f7RjGPfRbraxelPat23hSrZlLbrUvMVKZbLw4sV0LqMVy964OxwOgTMno6KiZdLNVVRE+NoP9TTTrs+e33jKKH9A/nrs+e33jrs+e33mKvl3lXIFsWlVrimoMSPApknFm4kOHh1nthtVyomPZiuBz15ZFmaqV/60HmPZcu72LkVvVOs38BTnn/8LjMAyxiJRpJkMy00PKzHq0CkUmo099MbCfE8a6io9IiuRMOqq93UX3nqJx38HV+Frz/QSf2op7ZlXu2ZfPxaDT4zoUGF8mYiMdgsR2Ha3H0J3L6VxM8NOc8uMPk9a6zodI2s7jW7/dEe+Z+H+11rV7W5SnrDjT6R4yd8OXTwip9Kp2J7VK3NZV5Jrl8Vo8xFTzLEioxf4I48oJtNpNTqS4SEhMzKJ3rDhqqJ9K9yG5G108Y9p5Xr9uusbvU47aIx+ERjyn73fkvr8rEwv3lEhJ9Mwq/8QzKxMJ9/RITvomFT/ipWYdiXZEaitpD0RfnRobf6uP2LYd2Q2q51IeqJ82NDcv8ABw9Xt/l5p++O1v4q1P7f/K5SeVeRc5PG6RMQk86worYn9UaWuhXZQa0rWSc+xIzu6DF+Q/H0Ii9/sxPB6jTahToiQ5+SmJZy93hYatx+jHvIrVVrkc1VRUXFFTzDLa4ZR7LLbdvOrbTU47rGM68YmOM/aq8nTwPP8k91zFVZEpFSiuizUFnXgxXd72Jgioq+dU7O3z4+o9ANDPCcMql6z0vqej1Pa47nR8J84n3xIADF9EAAAAAAAAAAAAAAAAAAAAAAAAOVPhE/xes/9bmfsQzqs5U+ET/F6z/1uZ+xDLj4pLjU6IyZdKOqWRYlKtSBaEnOw6dCWE2O+ccxX4uV2KojVw7znc94yddGG772sqmXTIV+hS0tUYaxIcKM6L12ojlb24MVMew5Jr3ouflnVnUSQ/f38g8s6s6iSH7+/kPl+RxfWs9ue+N/jC9Di+8Oy57bVf8A2jf4zH2Vf53p0trhuC2KhRIFoUmUSfl4ktEixYz42DHtVq4NwamOC+fFPUpzYew5VujtfuTu2Y9yVONR5+mS7mNjxJGYeroSOcjWq5r2NXDrKidmPeeT0uemabUIE/JuhtmIDuvDV8JsREX09VyKi+1DKK9yOuOgBZFVklrV81CViS0pOS7ZKQWI3BY7esj4j0x/NRWsRF7lXH0HPnSJ/Lnef7Xj/aOyeiBlOrWUex59lwpAfUaRHZAWPBhpDSNDczFqq1vyUd8lyL1URO7sQ426RP5c7z/a8f7RI8RQQWzI7Qqfc2VK2qBVWPfIT1RhQZhjHq1XMV3amKdqY92Kdp3B5L2RvV6b3lH5izlQzzBoZ5L2RvV6b3lH5h5L2RvV6b3lH5ic4WmeYO5sq/R1yU0DJlc1bplDmoU9IUqYmZd6z8ZyNiMhuc1VRXYL2p3KcMlibR1j8HV+Frz/AEEn9qKXCsRHRavORX/fPmHud9KuUp/wdX4WvP8AQSf2op6PlDo8akXRNscx3gI71jQX4djmuXFUT6FXA2NrMc5h5z6R9DUz2mjq4x7OMzf1ju/RCtOSgVG5JCSmlwgxozWv7cMU9Ht7vadDS8GDLwGQJeEyFCYmDWMaiNanoREOZob3w4jYkNzmPaqK1zVwVFTzoX2jZUKrKwmwqjJwZ5Gph10d4N6/T2Ki+5DPc6WecxOLr/YrtBsOl46mnuo4zlN8qvu+E13/ADewA86hZVqeqJ4SkzTV8/ViNX+wi5VqciL4KlTTl83We1P7mp6jU+D0T+LujVfr48p/wvdUkJSpyMWSnYLYsGImCtVO71p6FT0nn3+mNI/79E9zP7nw7jykVWpy0SVkoDKfCiIrXOa9XxFT0I7sw9iY+spBs6WhqYx406T2g7U9H3WtjW39dUfimZx+kd1z9fo9ntWx5CiVuDUZasRI74aOTwao3ByK1U8y+vH2F3PHcjFJjTFffVnQ18XlGOaj188RyYYJ/wDKr709J7Ea+vExnUzbuXZHU0tXp/rNHQ9VjlM1FzN+EX3/AJV9AAHC7QAAAAAAAAAAAAAAAAAAAAAAAAHP/TOydXjlCotuQLQpCVKLJTEd8w3xmFB6jXNaiL90c1F7l7joACJpGc/k1ZbNS/5pJ/5Tt/IHQKta2R+3KBXZVJWpScsrJiD4Rr+o5XuXDrNVWr2Kncql5BZysAARVGy+W/VrpyP3HQKHKpN1KclkZLwViNZ13I9rsOs5UanYi96ocQeTVls1L/mkn/lNGAWMqRz/ANDHJ1eOT2jXHAvCkJTYs7MQHy7fGYUbrta16Kv3NzkTvTvPFss+QLK1cOVe5q5R7U8ap89UYsaXjfGMqzrscuKL1XREVPaiHdIHLvspwvkVyBZWbeysWzXKzaiStPkahDjTEb4xlX9RiL2r1WxFcvsRTugATNgACKrGVmlT9dyX3RRaVA8Yn56kzMvLQuu1vXiPhua1uLlRExVU7VVEODvJqy2al/zST/ymjALGVI5s6F+TC+cnlQueLeFD+LGT0KWbLr43BjddWLE63/Te7DDrJ34d50FX6LTq5JeKVGAkRiLixyLg5i+lF8x9EDlN249bR09bCdPUxicZ8YnviXklZyW1CE9X0qegzMPzMjfIenqx7UX+BXZmyLpl1VH0iM/Dzw3Nfj7lPfQbGO6zjxdL3Xo/6VrZctPlh8onu+8T+rnZ1tXC1cFoVS9kq9f9j8bbdwuXBKFU/bKvT/Y6KBl+2ZfBofy32l/1svKHgcpZF0zKp1KRFYnpiuazD3qWihZLJh0RsStTzGQ07Vgy/a5fUrl7E9iKeqAwy3Wc/J9HZ9gelbfKMs+Wf5z3eURH3RqZISdNk2ScjLsgQGJ8ljU/ivpX1kkA1/F3TDDHTxjHGKiPdAAAzAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoEXSGy8Q0hsvEBKBF0hsvENIbLxASgRdIbLxDSGy8QEoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABkUDPgltdQZFAcC2uoMigOBbXUGRQHAtrqDIoDgW11BkUBwLa6gyKA4FtdQZFAcC2uoMigOBbXUGRQHAtrqDIoDgW11BkUBwLa6gyKA4FtdQZFAcC2uoMigOBbXUGRQHAtrqDIoDgW11BkUBwLa6gyKA4FtdQZFAcC2uoMigOBbXUGRQHAtrqDIoDgW//2Q==" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" /></div>
+    <div><div class="chatbot-title">RHC chatbot</div><div class="chatbot-status">● Online agora</div></div>
+    <button class="chatbot-close" onclick="toggleChat()">×</button>
+  </div>
+  <div class="chatbot-messages" id="chat-msgs">
+    <div class="chat-msg bot">Olá! Sou o <strong>RHC chatbot</strong>. Como posso ajudar no seu processo de recrutamento hoje?</div>
+  </div>
+  <div class="chatbot-suggestions" id="chat-suggestions">
+    <span class="suggestion-chip" onclick="askChat(this)">Como criar um teste?</span>
+    <span class="suggestion-chip" onclick="askChat(this)">Ver candidatos aprovados</span>
+    <span class="suggestion-chip" onclick="askChat(this)">O que significa a pontuação?</span>
+  </div>
+  <div class="chatbot-input-row">
+    <input class="chatbot-input" id="chat-input" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chatbot-send" onclick="sendChat()">
+      <svg viewBox="0 0 24 24"><path d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const API_URL = '/api/generate';
+
+/* ============================================================
+   PERSISTENCE — localStorage as the "database"
+   saveState() is called after every mutation.
+   loadState() runs once at boot and hydrates STATE.
+   ============================================================ */
+const STORAGE_KEY = 'rhc_platform_state_v1';
+
+const DEFAULT_STATE = {
+  candidates: [
+    { id:1, name:'Miguel Ferreira', email:'miguel@email.pt', job:'Eng. Software', test:'JavaScript Avançado', score:94, status:'Aprovado', addedAt: Date.now() - 3600000*3 },
+    { id:2, name:'Beatriz Santos',  email:'beatriz@email.pt', job:'Product Manager', test:'Product Management', score:91, status:'Aprovado', addedAt: Date.now() - 3600000*4 },
+    { id:3, name:'Rui Lopes',       email:'rui@email.pt',     job:'Data Analyst',    test:'Data Analysis',     score:72, status:'Em espera', addedAt: Date.now() - 3600000*6 },
+    { id:4, name:'Carolina Mota',   email:'carolina@email.pt',job:'UX Designer',     test:'UX Research',       score:68, status:'Em avaliação', addedAt: Date.now() - 3600000*8 },
+    { id:5, name:'João Costa',      email:'joao@email.pt',    job:'DevOps',          test:'Cloud & Linux',     score:41, status:'Reprovado', addedAt: Date.now() - 3600000*10 }
+  ],
+  jobs: [
+    { id:1, title:'Engenheiro de Software Sénior', location:'Lisboa, Híbrido', type:'Tempo inteiro', urgency:'Urgente', tags:['React','Node.js','PostgreSQL'], test:'JavaScript Avançado' },
+    { id:2, title:'Product Manager',               location:'Porto, Remoto',   type:'Tempo inteiro', urgency:'Ativo',   tags:['Roadmap','Agile','B2B SaaS'],   test:'Product Management' },
+    { id:3, title:'Data Analyst',                  location:'Lisboa, Presencial',type:'Tempo inteiro',urgency:'Ativo',  tags:['SQL','Python','Tableau'],        test:'Data Analysis' },
+    { id:4, title:'UX Designer Pleno',             location:'Porto, Híbrido',  type:'Tempo inteiro', urgency:'Urgente', tags:['Figma','User Research','Prototyping'], test:'UX Research' }
+  ],
+  tests: [
+    { id:1, icon:'⚡', name:'JavaScript Avançado', questions:30, duration:45, level:'Sénior', status:'active',
+      sampleQ:['Explique closures em JavaScript com um exemplo prático.','Diferença entre Promise.all e Promise.allSettled?','Como funciona o event loop no Node.js?'] },
+    { id:2, icon:'📊', name:'Product Management', questions:25, duration:40, level:'Pleno', status:'active',
+      sampleQ:['Como priorizaria funcionalidades com o framework RICE?','Descreva como conduziria uma entrevista com utilizador.','O que é Product-Market Fit e como o mede?'] },
+    { id:3, icon:'🎨', name:'UX Research', questions:20, duration:35, level:'Pleno', status:'active',
+      sampleQ:['Qual a diferença entre UX e UI?','Explique o processo de Design Thinking.','Como estrutura um teste de usabilidade com 5 utilizadores?'] },
+    { id:4, icon:'📈', name:'Data Analysis', questions:28, duration:50, level:'Pleno', status:'active',
+      sampleQ:['Escreva uma query SQL para top 5 clientes por receita.','Diferença entre LEFT JOIN e INNER JOIN?','Como trata valores nulos em pandas?'] },
+    { id:5, icon:'☁️', name:'Cloud & Linux', questions:22, duration:40, level:'Sénior', status:'draft',
+      sampleQ:[] },
+    { id:6, icon:'🧑‍💼', name:'Teste RH', questions:40, duration:55, level:'Trainee / Júnior', status:'active',
+      sampleQ:[
+        'Qual é a duração máxima de um contrato a termo certo em Portugal incluindo todas as renovações?',
+        'Tinhas de dar feedback negativo a um candidato que conhecias pessoalmente. Como abordaste a situação?',
+        'Um gestor pede-te para avançares com uma contratação urgente sem aprovação formal de budget. O que fazes?',
+        'O que te levou a querer trabalhar em Recursos Humanos?',
+        'O que é o Relatório Único e a que organismo é submetido em Portugal?',
+        'Quantas horas de formação contínua certificada tem direito um trabalhador a tempo inteiro por ano em Portugal?',
+        'Percebes-te que estavas a avaliar um candidato mais positivamente por ele ter frequentado a mesma universidade que tu. Como agiste?',
+        'Num inquérito interno, 60% dos colaboradores classificam a comunicação interna como fraca. O que propões à gestão?',
+        'Como defines o papel ideal de RH numa PME?',
+        'Qual é a diferença entre avaliação de desempenho e gestão de desempenho?'
+      ]
+    }
+  ],
+  activity: [
+    { text:'Miguel Ferreira concluiu teste de JavaScript', time: Date.now() - 900000,    candidateId: 1 },
+    { text:'Nova candidatura para Engenheiro Backend',     time: Date.now() - 2580000,   candidateId: null },
+    { text:'IA avaliou 5 candidatos para Product Manager', time: Date.now() - 3600000,   candidateId: null },
+    { text:'Teste "React Avançado" criado e publicado',    time: Date.now() - 7200000,   candidateId: null },
+    { text:'Carolina Mota iniciou teste de UX Research',   time: Date.now() - 10800000,  candidateId: 4 }
+  ],
+  nextId: 6
+};
+
+function saveState() {
+  // Data is saved directly to Supabase on each action — this is now a no-op kept for compatibility
+  showToast('💾 Guardado automaticamente');
+}
+
+function loadState() { return null; } // Supabase handles loading
+
+let _toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if(!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function resetToDefaults() {
+  if(!confirm('Repor todos os dados de exemplo?\n\nTodos os candidatos, vagas e testes criados por si serão apagados.')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+// Boot: use persisted state if available, else fall back to defaults
+// STATE starts empty — Supabase loads real data on login
+const STATE = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+// ensureTesteRH — adds Teste RH to org if not already in Supabase
+async function ensureTesteRH() {
+  const exists = STATE.tests.some(t => t.name === 'Teste RH');
+  if(!exists && currentOrgId) {
+    const { data: dbExists } = await supa.from('tests').select('id').eq('org_id', currentOrgId).eq('name','Teste RH').maybeSingle();
+    if(!dbExists) {
+      const testeRH = {
+        id: STATE.nextId++,
+        icon: '🧑‍💼', name: 'Teste RH', questions: 40, duration: 55,
+        level: 'Trainee / Júnior', status: 'active', isBaseModel: false,
+        sampleQ: [
+          'Qual é a duração máxima de um contrato a termo certo em Portugal incluindo todas as renovações?',
+          'Tinhas de dar feedback negativo a um candidato que conhecias pessoalmente. Como abordaste a situação?',
+          'Um gestor pede-te para avançares com uma contratação urgente sem aprovação formal de budget. O que fazes?',
+          'O que te levou a querer trabalhar em Recursos Humanos?',
+          'O que é o Relatório Único e a que organismo é submetido em Portugal?',
+          'Quantas horas de formação contínua certificada tem direito um trabalhador a tempo inteiro por ano em Portugal?',
+          'Apercebeste-te que estavas a avaliar um candidato mais positivamente por ele ter frequentado a mesma universidade que tu. Como agiste?',
+          'Num inquérito interno, 60% dos colaboradores classificam a comunicação interna como fraca. O que propões à gestão?',
+          'Como defines o papel ideal de RH numa PME?',
+          'Qual é a diferença entre avaliação de desempenho e gestão de desempenho?'
+        ]
+      };
+      STATE.tests.push(testeRH);
+      try { await saveTest(testeRH); } catch(e) { console.warn('ensureTesteRH:', e); }
+    }
+  }
+}
+
+/* ============================================================
+   PROFILE — name, email, photo (base64)
+   Stored separately so it survives state resets.
+   ============================================================ */
+const PROFILE_KEY = 'rhc_profile_v1';
+
+const PROFILE = (() => {
+  try {
+    const raw = localStorage.getItem(PROFILE_KEY);
+    if(raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { name: 'Ana Silva', email: 'recruiter@rhc.pt', photo: null };
+})();
+
+function saveProfile() {
+  const newName = document.getElementById('profile-name-input').value.trim();
+  if(!newName) { showToast('⚠️ O nome não pode estar vazio'); return; }
+  PROFILE.name = newName;
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); } catch(e) {}
+  applyProfile();
+  closeProfileDrawer();
+  showToast('✓ Perfil atualizado');
+}
+
+function applyProfile() {
+  // Nav name
+  document.getElementById('nav-username').textContent = PROFILE.name;
+  // Nav avatar — photo or initials
+  const navImg = document.getElementById('nav-avatar-img');
+  const navInit = document.getElementById('nav-avatar');
+  if(PROFILE.photo) {
+    navImg.src = PROFILE.photo;
+    navImg.style.display = 'block';
+    navInit.style.display = 'none';
+  } else {
+    navImg.style.display = 'none';
+    navInit.style.display = 'flex';
+    navInit.textContent = initials(PROFILE.name);
+  }
+  // Dashboard greeting
+  const greetEl = document.getElementById('dash-greeting');
+  if(greetEl) {
+    const hr = new Date().getHours();
+    const greet = hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
+    const firstName = PROFILE.name.split(' ')[0];
+    greetEl.textContent = `${greet}, ${firstName} 👋`;
+  }
+}
+
+function openProfileDrawer() {
+  // Populate drawer with current profile
+  document.getElementById('profile-name-input').value = PROFILE.name;
+  document.getElementById('profile-email-display').textContent = PROFILE.email;
+  const companyEl = document.getElementById('profile-company-display');
+  if(companyEl) companyEl.textContent = PROFILE.company || PROFILE.name || '—';
+  document.getElementById('profile-initials-big').textContent = initials(PROFILE.name);
+  const preview = document.getElementById('profile-photo-preview');
+  const initBig = document.getElementById('profile-initials-big');
+  if(PROFILE.photo) {
+    preview.src = PROFILE.photo;
+    preview.style.display = 'block';
+    initBig.style.display = 'none';
+  } else {
+    preview.style.display = 'none';
+    initBig.style.display = 'flex';
+  }
+  document.getElementById('profile-overlay').classList.add('open');
+  document.getElementById('profile-drawer').classList.add('open');
+  setTimeout(() => document.getElementById('profile-name-input').focus(), 250);
+}
+
+function closeProfileDrawer() {
+  document.getElementById('profile-overlay').classList.remove('open');
+  document.getElementById('profile-drawer').classList.remove('open');
+}
+
+function handlePhotoUpload(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  if(file.size > 2 * 1024 * 1024) { showToast('⚠️ Foto demasiado grande (máx 2MB)'); return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    PROFILE.photo = e.target.result;
+    // Show preview in drawer
+    const preview = document.getElementById('profile-photo-preview');
+    const initBig = document.getElementById('profile-initials-big');
+    preview.src = PROFILE.photo;
+    preview.style.display = 'block';
+    initBig.style.display = 'none';
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---- helpers ---- */
+function initials(name){ return name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+function timeAgo(ts){
+  const s = Math.round((Date.now()-ts)/1000);
+  if(s<60) return 'agora mesmo';
+  if(s<3600) return `há ${Math.round(s/60)} min`;
+  if(s<86400) return `há ${Math.round(s/3600)} hora${Math.round(s/3600)>1?'s':''}`;
+  return `há ${Math.round(s/86400)} dia${Math.round(s/86400)>1?'s':''}`;
+}
+function scoreColor(s){ return s>=80?'var(--rhc-green)': s>=60?'#efb84a':'#e26b6b'; }
+function scoreClass(s){ return s>=80?'score-high': s>=60?'score-mid':'score-low'; }
+function statusStyle(st){
+  if(st==='Aprovado')    return 'background:rgba(93,202,165,.12);color:var(--rhc-green)';
+  if(st==='Em avaliação') return 'background:rgba(239,184,74,.1);color:#efb84a';
+  if(st==='Em análise')  return 'background:rgba(99,179,237,.12);color:#63b3ed';
+  if(st==='Em espera')   return 'background:rgba(93,202,165,.08);color:#5DCAA5';
+  if(st==='Convidado')   return 'background:rgba(167,139,250,.12);color:#a78bfa';
+  return 'background:rgba(226,107,107,.12);color:#e26b6b';
+}
+function flashEl(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.classList.remove('metric-flash');
+  void el.offsetWidth;
+  el.classList.add('metric-flash');
+}
+
+/* ============================================================
+   COMPUTED METRICS — always derived live from STATE
+   ============================================================ */
+function computeMetrics() {
+  const c = STATE.candidates;
+  const activeCands   = c.length;
+  const testsCount    = c.filter(x => x.test && x.test !== '—').length;
+  const evaluated     = c.filter(x => x.score != null).length;
+  const activeJobs    = STATE.jobs.length;
+  const urgentJobs    = STATE.jobs.filter(j => j.urgency==='Urgente').length;
+  const approved      = c.filter(x => x.status==='Aprovado').length;
+  const evalRate      = activeCands > 0 ? Math.round(evaluated/activeCands*100) : 0;
+  const activeTests   = STATE.tests.filter(t => t.status==='active').length;
+  const draftTests    = STATE.tests.filter(t => t.status==='draft').length;
+  const totalCompletions = STATE.candidates.filter(c => c.test).length;
+  return { activeCands, testsCount, evaluated, activeJobs, urgentJobs, approved, evalRate, activeTests, draftTests, totalCompletions };
+}
+
+/* ============================================================
+   RENDER DASHBOARD — live metrics + top candidates + activity
+   ============================================================ */
+function renderDashboard() {
+  const m = computeMetrics();
+
+  // Update metric cards with animation
+  const prevCands = parseInt(document.getElementById('metric-candidates').textContent)||0;
+  document.getElementById('metric-candidates').textContent = m.activeCands;
+  document.getElementById('metric-candidates-trend').textContent =
+    m.activeCands > prevCands && prevCands > 0 ? `+${m.activeCands-prevCands} adicionado${m.activeCands-prevCands>1?'s':''}` : `${m.activeCands} total`;
+
+  document.getElementById('metric-tests').textContent = m.testsCount;
+  document.getElementById('metric-tests-trend').textContent = `${m.testsCount} de ${m.activeCands} candidatos`;
+
+  document.getElementById('metric-evaluated').textContent = m.evaluated;
+  document.getElementById('metric-evaluated-trend').textContent = `${m.evalRate}% taxa de conclusão`;
+
+  document.getElementById('metric-jobs').textContent = m.activeJobs;
+  document.getElementById('metric-jobs-trend').textContent = `${m.urgentJobs} com urgência`;
+
+  const prevTests = parseInt(document.getElementById('metric-active-tests').textContent)||0;
+  document.getElementById('metric-active-tests').textContent = m.activeTests;
+  document.getElementById('metric-active-tests-trend').textContent =
+    m.draftTests > 0 ? `+ ${m.draftTests} em rascunho` : `${m.totalCompletions} realizações total`;
+  if(m.activeTests !== prevTests && prevTests > 0) flashEl('metric-active-tests');
+
+  if(m.activeCands !== prevCands && prevCands > 0) flashEl('metric-candidates');
+
+  // Date/greeting
+  const hr = new Date().getHours();
+  const greet = hr<12?'Bom dia':hr<18?'Boa tarde':'Boa noite';
+  const firstName = PROFILE.name.split(' ')[0];
+  document.getElementById('dash-greeting').textContent = `${greet}, ${firstName} 👋`;
+  document.getElementById('dash-date').textContent = new Date().toLocaleDateString('pt-PT',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  // Top candidates sorted by score
+  const top = [...STATE.candidates].sort((a,b)=>b.score-a.score).slice(0,5);
+  const tc = document.getElementById('dash-top-candidates');
+  if(top.length===0){
+    tc.innerHTML = '<div style="font-size:13px;color:#444;padding:20px 0;text-align:center;">Sem candidatos ainda</div>';
+  } else {
+    tc.innerHTML = top.map(c => `
+      <div class="cand-row">
+        <div class="cand-avatar">${initials(c.name)}</div>
+        <div><div class="cand-name">${c.name}</div><div class="cand-role">${c.job}</div></div>
+        <div class="score-badge ${c.score===null?'score-low':scoreClass(c.score)}" style="margin-left:auto;">${c.score===null?'0':c.score}%</div>
+      </div>`).join('');
+  }
+
+  // Activity feed
+  const af = document.getElementById('dash-activity');
+  if(STATE.activity.length===0){
+    af.innerHTML = '<div style="font-size:13px;color:#444;padding:20px 0;text-align:center;">Sem atividade</div>';
+  } else {
+    af.innerHTML = STATE.activity.slice(0,6).map(a => `
+      <div class="activity-item">
+        <div class="activity-dot"></div>
+        <div><div class="activity-text">${a.text}</div><div class="activity-time">${timeAgo(a.time)}</div></div>
+      </div>`).join('');
+  }
+}
+
+/* ============================================================
+   RENDER CANDIDATES TABLE
+   ============================================================ */
+function renderCandidatesTable() {
+  const search = (document.getElementById('cand-search')?.value||'').toLowerCase();
+  const filterStatus = document.getElementById('cand-filter-status')?.value||'';
+  const filterJob = document.getElementById('cand-filter-job')?.value||'';
+
+  let list = STATE.candidates.filter(c => {
+    const matchSearch = c.name.toLowerCase().includes(search) || c.job.toLowerCase().includes(search);
+    const matchStatus = !filterStatus || c.status===filterStatus;
+    const matchJob    = !filterJob    || c.job===filterJob;
+    return matchSearch && matchStatus && matchJob;
+  });
+
+  const body = document.getElementById('candidates-body');
+  if(!body) return;
+
+  if(list.length===0){
+    body.innerHTML = `<div class="table-empty">Nenhum candidato encontrado</div>`;
+    return;
+  }
+  body.innerHTML = list.map(c => {
+    const isPending   = c.status === 'Convidado';
+    const isAnalysis  = c.status === 'Em análise';
+    const scoreCell   = (isPending || isAnalysis)
+      ? `<div style="font-size:12px;color:#555;">—</div>`
+      : `<div class="score-bar-wrap">
+           <div class="score-bar"><div class="score-bar-fill" style="width:${c.score}%;background:${scoreColor(c.score)};"></div></div>
+           <span style="font-size:12px;color:${scoreColor(c.score)};">${c.score}%</span>
+         </div>`;
+    const evalBtn = isPending
+      ? `<button class="action-btn" style="opacity:.35;cursor:default;" disabled>Ver IA</button>`
+      : isAnalysis
+      ? `<button class="action-btn" style="background:rgba(99,179,237,.12);color:#63b3ed;border-color:rgba(99,179,237,.25);" onclick="openCandidateProfile('${c.id}')">Ver perfil</button>`
+      : `<button class="action-btn" onclick="openEval('${c.id}')">Ver IA</button>`;
+    const inviteLink = isPending
+      ? (() => { const _j=STATE.jobs.find(j=>j.title===c.job); const _p=_j?.idealProfile||''; return `https://rhccandidatos.vercel.app?company=${encodeURIComponent(PROFILE.company||PROFILE.name||'RHC')}&job=${encodeURIComponent(c.job||'')}&test=${encodeURIComponent(c.test||'')}&email=${encodeURIComponent(c.email||'')}&profile=${encodeURIComponent(_p)}`; })()
+      : null;
+    return `
+    <div class="table-row">
+      <div class="cand-info">
+        <div class="cand-avatar" style="width:30px;height:30px;font-size:10px;${isPending?'background:#2a2040;color:#a78bfa;':isAnalysis?'background:rgba(99,179,237,.15);color:#63b3ed;':''}">${initials(c.name)}</div>
+        <div>
+          <div style="font-size:13px;color:#ddd;${isPending||isAnalysis?'cursor:pointer;':''}${isPending?'text-decoration:underline;text-underline-offset:3px;text-decoration-color:#a78bfa;':''}"
+            ${isPending ? `onclick="openInviteLink('${c.id}')" title="Ver link de convite"` : isAnalysis ? `onclick="openCandidateProfile('${c.id}')" title="Ver perfil completo"` : ''}
+          >${c.name}${isPending ? ' <span style="font-size:10px;color:#a78bfa;">🔗</span>' : isAnalysis ? ' <span style="font-size:10px;color:#63b3ed;">📋</span>' : ''}</div>
+          <div style="font-size:11px;color:#555;">${c.email}</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#aaa;">${c.job}</div>
+      <div>${scoreCell}</div>
+      <div style="font-size:12px;color:#777;">${c.test}</div>
+      <div><span class="status-pill" style="${statusStyle(c.status)}">${c.status}</span></div>
+      <div style="display:flex;gap:4px;align-items:center;">
+        ${evalBtn}
+        <button class="action-btn danger" onclick="removeCandidate('${c.id}')" title="${isPending?'Cancelar convite':isAnalysis?'Rejeitar candidatura':'Remover'}">${isPending?'✕ Cancelar':isAnalysis?'✕ Rejeitar':'✕'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RENDER JOBS FILTER DROPDOWN
+   ============================================================ */
+function renderJobsDropdown() {
+  const sel = document.getElementById('cand-filter-job');
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Todas as vagas</option>';
+  const jobNames = [...new Set(STATE.candidates.map(c=>c.job))];
+  jobNames.forEach(j => {
+    const o = document.createElement('option');
+    o.value = j; o.textContent = j;
+    if(j===current) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+/* ============================================================
+   RENDER JOBS PAGE
+   ============================================================ */
+function renderJobs() {
+  const grid = document.getElementById('jobs-grid');
+  if(!grid) return;
+  if(STATE.jobs.length===0){
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:#444;padding:40px;font-size:13px;">Sem vagas abertas</div>';
+    return;
+  }
+  const urgencyStyle = u => u==='Urgente'
+    ? 'background:rgba(239,184,74,.12);color:#efb84a;'
+    : u==='Pausado'
+    ? 'background:#1e1e1e;color:#555;'
+    : 'background:rgba(93,202,165,.12);color:var(--rhc-green);';
+
+  grid.innerHTML = STATE.jobs.map(j => {
+    const cCount = STATE.candidates.filter(c=>c.job===j.title||c.job===j.title.replace(' Sénior','').replace(' Pleno','')).length;
+    return `
+    <div class="panel" style="border:1px solid #1e1e1e;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+        <div>
+          <div style="font-size:14px;font-weight:500;color:#ddd;">${j.title}</div>
+          <div style="font-size:12px;color:#555;margin-top:3px;">${j.location} • ${j.type}</div>
+        </div>
+        <span class="status-pill" style="${urgencyStyle(j.urgency)}font-size:10px;">${j.urgency}</span>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;">${j.tags.map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+      <div style="display:flex;gap:20px;font-size:12px;color:#666;border-top:1px solid #1e1e1e;padding-top:10px;align-items:center;">
+        <span><strong style="color:#aaa;">${cCount}</strong> candidatos</span>
+        <span>Teste: ${j.test}</span>
+        <button class="action-btn danger" style="margin-left:auto;" onclick="removeJob('${j.id}')">Remover</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ============================================================
+   RENDER TESTS PAGE
+   ============================================================ */
+function renderTests() {
+  const grid = document.getElementById('tests-grid');
+  if(!grid) return;
+
+  // Compute live stats per test from candidates — never mutate STATE here
+  const statsByTest = {};
+  STATE.candidates.forEach(c => {
+    if(!c.test) return;
+    if(!statsByTest[c.test]) statsByTest[c.test] = { count: 0, scores: [] };
+    statsByTest[c.test].count++;
+    statsByTest[c.test].scores.push(c.score);
+  });
+
+  const activeCount = STATE.tests.filter(t=>t.status==='active').length;
+  const draftCount  = STATE.tests.filter(t=>t.status==='draft').length;
+
+  // Update tests sub-header live count badge
+  const subEl = document.getElementById('tests-live-count');
+  if(subEl) subEl.textContent = `${activeCount} ativos • ${draftCount} em rascunho`;
+
+  grid.innerHTML = STATE.tests.map(t => {
+    const stats    = statsByTest[t.name] || { count: 0, scores: [] };
+    const liveCands = stats.count;
+    const liveAvg   = stats.scores.length
+      ? Math.round(stats.scores.reduce((a,b)=>a+b,0) / stats.scores.length)
+      : null;
+
+    return `
+    <div class="test-card" style="position:relative;" id="test-card-${t.id}">
+      <div class="test-card-header" onclick="openTestModal('${t.id}')" style="cursor:pointer;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="test-status ${t.status}">${t.status==='active'?'Ativo':'Rascunho'}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button
+            onclick="event.stopPropagation();removeTest('${t.id}')"
+            title="Apagar teste"
+            style="background:none;border:1px solid #2a2a2a;border-radius:5px;color:#555;cursor:pointer;font-size:11px;padding:2px 7px;transition:all .15s;"
+            onmouseover="this.style.borderColor='#e26b6b';this.style.color='#e26b6b';"
+            onmouseout="this.style.borderColor='#2a2a2a';this.style.color='#555';"
+          >✕</button>
+        </div>
+      </div>
+      <div onclick="openTestModal('${t.id}')" style="cursor:pointer;">
+        <div class="test-name">${t.name}</div>
+        <div class="test-meta">${t.questions} questões • ${t.duration} min</div>
+        <div class="test-footer">
+          <div class="test-stat"><span id="tc-cands-${t.id}">${liveCands}</span> candidatos</div>
+          <div class="test-stat"><span id="tc-avg-${t.id}">${liveAvg!=null?liveAvg+'%':'—'}</span> média IA</div>
+          <div class="test-stat"><span>${t.level}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('') +
+    `<div class="test-card" style="border:1px dashed #2a2a2a;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;min-height:140px;" onclick="openCreateTest()">
+      <div style="font-size:28px;color:#333;">+</div>
+      <div style="font-size:13px;color:#555;">Gerar com IA</div>
+    </div>`;
+}
+
+/* ============================================================
+   RENDER SELECTS IN MODALS
+   ============================================================ */
+function populateModalSelects() {
+  // Tests dropdown in invite modal
+  const testSel = document.getElementById('new-cand-test');
+  if(testSel){
+    testSel.innerHTML = '<option value="">Seleccionar teste...</option>' +
+      STATE.tests.filter(t=>t.status==='active').map(t=>`<option>${t.name}</option>`).join('');
+  }
+  // Jobs dropdown in invite modal
+  const jobSel = document.getElementById('new-cand-job');
+  if(jobSel){
+    const jobs = STATE.jobs.filter(j=>j.urgency!=='Pausado');
+    if(jobs.length === 0) {
+      jobSel.innerHTML = '<option value="">Sem vagas abertas</option>';
+    } else {
+      jobSel.innerHTML = '<option value="">Seleccionar vaga...</option>' +
+        jobs.map(j=>`<option value="${j.title}">${j.title}${j.location?' · '+j.location:''}</option>`).join('');
+    }
+  }
+  // Tests dropdown in add-job modal
+  const jobTestSel = document.getElementById('new-job-test');
+  if(jobTestSel){
+    jobTestSel.innerHTML = STATE.tests.map(t=>`<option>${t.name}</option>`).join('');
+  }
+}
+
+/* ============================================================
+   FULL REFRESH — call after any state change
+   ============================================================ */
+function refreshAll() {
+  renderDashboard();
+  renderCandidatesTable();
+  renderJobsDropdown();
+  renderJobs();
+  renderTests();
+}
+
+/* ============================================================
+   ACTIONS
+   ============================================================ */
+/* ============================================================
+   EMAILJS — pré-configurado, transparente para o recruiter
+   ============================================================ */
+const EJS_SERVICE  = 'service_kucrcz4';
+const EJS_TEMPLATE = 'template_gjbagco';
+const EJS_PUBKEY   = 'BFrZLR1TR8VAV6a-z';
+const EJS_KEY      = 'rhc_emailjs_v1'; // kept for compatibility
+
+function getEmailConfig() {
+  return { publicKey: EJS_PUBKEY, serviceId: EJS_SERVICE, templateId: EJS_TEMPLATE };
+}
+
+async function sendInvite() {
+  const job  = (document.getElementById('new-cand-job')?.value || '');
+  const test = document.getElementById('new-cand-test').value;
+
+  if(!job)  { showToast('⚠️ Selecciona a vaga'); return; }
+  if(!test) { showToast('⚠️ Selecciona o teste'); return; }
+
+  const _inviteJob     = STATE.jobs.find(j=>j.title===job);
+  const _idealProfile  = _inviteJob?.idealProfile || '';
+  const company        = PROFILE.company || PROFILE.name || 'RHC';
+  const link = `https://rhccandidatos.vercel.app?company=${encodeURIComponent(company)}&job=${encodeURIComponent(job)}&test=${encodeURIComponent(test)}&profile=${encodeURIComponent(_idealProfile)}`;
+
+  document.getElementById('invite-link-text').textContent = link;
+  document.getElementById('invite-link-text').dataset.url = link;
+  document.getElementById('invite-link-box').style.display = 'block';
+  document.getElementById('invite-btn-text').innerHTML = '✓&nbsp; Link gerado';
+
+  // Auto-copy to clipboard
+  try { await navigator.clipboard.writeText(link); showToast('📋 Link copiado para a área de transferência'); } catch(e) {}
+}
+
+function copyGeneratedLink() {
+  const link = document.getElementById('invite-link-text').dataset.url;
+  if(!link) return;
+  navigator.clipboard.writeText(link).then(() => {
+    showToast('📋 Link copiado!');
+  }).catch(() => {
+    showToast('Link: ' + link);
+  });
+}
+
+function resetInviteForm() {
+  document.getElementById('invite-link-box').style.display = 'none';
+  document.getElementById('invite-btn-text').innerHTML = '🔗&nbsp; Gerar link';
+  document.getElementById('btn-send-invite').disabled = false;
+  const jobSel = document.getElementById('new-cand-job');
+  if(jobSel) jobSel.selectedIndex = 0;
+  const sel = document.getElementById('new-cand-test');
+  if(sel && sel.options.length) sel.selectedIndex = 0;
+}
+
+function updateInvitePreview() {
+  // No preview needed anymore — link updates live
+}
+
+let _profileCandId = null;
+
+async function openCandidateProfile(id) {
+  const c = STATE.candidates.find(x=>x.id==id);
+  if(!c) return;
+  _profileCandId = id;
+
+  // If applicationData not loaded yet, fetch from Supabase
+  if(!c.applicationData) {
+    showToast('A carregar perfil...');
+    try {
+      const { data: apps } = await supa.from('applications').select('*').eq('candidate_id', id).limit(1);
+      if(apps && apps[0]) {
+        const app = apps[0];
+        c.applicationData = {
+          name: app.name, dob: app.dob, gender: app.gender, phone: app.phone,
+          address: app.address, zip: app.zip, education: app.education, institution: app.institution,
+          linkedin: app.linkedin, experience: app.experience||[], noExp: app.no_exp,
+          location: app.location_pref, salary: app.salary, cvName: app.cv_name, cvData: app.cv_data,
+          submittedAt: new Date(app.submitted_at).getTime()
+        };
+        c.aiScreening = {
+          pontuacao: app.ai_score, resumo: app.ai_summary, aprovado: app.ai_approved,
+          pontos_fortes: app.ai_strengths||[], pontos_fracos: app.ai_weaknesses||[]
+        };
+      }
+    } catch(e) { console.warn('fetch application error:', e); }
+  }
+
+  if(!c.applicationData) {
+    // Try by email as fallback
+    try {
+      // Fallback: search by email only (candidate_id may have been null at insert time)
+      const { data: apps } = await supa.from('applications').select('*').eq('email', c.email).limit(1);
+      if(apps && apps[0]) {
+        const app = apps[0];
+        c.applicationData = {
+          name: app.name, dob: app.dob, gender: app.gender, phone: app.phone,
+          address: app.address, zip: app.zip, education: app.education, institution: app.institution,
+          linkedin: app.linkedin, experience: app.experience||[], noExp: app.no_exp,
+          location: app.location_pref, salary: app.salary, cvName: app.cv_name, cvData: app.cv_data,
+          submittedAt: new Date(app.submitted_at).getTime()
+        };
+        c.aiScreening = {
+          pontuacao: app.ai_score, resumo: app.ai_summary, aprovado: app.ai_approved,
+          pontos_fortes: app.ai_strengths||[], pontos_fracos: app.ai_weaknesses||[]
+        };
+      }
+    } catch(e) { console.warn('fetch application by email error:', e); }
+  }
+
+  if(!c.applicationData) {
+    showToast('⚠️ Sem dados de candidatura disponíveis ainda');
+    return;
+  }
+  const d = c.applicationData;
+  const ai = c.aiScreening || null;
+
+  document.getElementById('cp-title').textContent = c.name;
+  document.getElementById('cp-sub').textContent   = `${c.job} · ${c.email}`;
+
+  const expHTML = d.noExp
+    ? '<span style="color:#555;font-size:13px;">Sem experiência profissional</span>'
+    : (d.experience||[]).map(e => `<div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:13px;"><strong style="color:#ddd;">${e.role||'—'}</strong> <span style="color:#555;">em</span> <span style="color:#aaa;">${e.company||'—'}</span> <span style="color:#555;font-size:11px;">(${e.years||'—'})</span></div>`).join('') || '<span style="color:#555;">—</span>';
+
+  const aiHTML = ai ? `
+    <div style="background:${ai.aprovado?'rgba(93,202,165,.06)':'rgba(226,107,107,.06)'};border:1px solid ${ai.aprovado?'rgba(93,202,165,.2)':'rgba(226,107,107,.2)'};border-radius:10px;padding:16px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="font-size:22px;">${ai.aprovado?'✅':'⚠️'}</div>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:${ai.aprovado?'var(--rhc-green)':'#e26b6b'};">IA recomenda: ${ai.aprovado?'Avançar para teste':'Perfil não recomendado'}</div>
+          <div style="font-size:11px;color:#555;">Pontuação de compatibilidade: ${ai.pontuacao||'—'}%</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:#aaa;line-height:1.6;margin-bottom:10px;">${ai.resumo||''}</div>
+      ${ai.pontos_fortes?.length ? `<div style="font-size:11px;color:var(--rhc-green);margin-bottom:4px;">✓ ${ai.pontos_fortes.join(' · ')}</div>` : ''}
+      ${ai.pontos_fracos?.length ? `<div style="font-size:11px;color:#e26b6b;">✗ ${ai.pontos_fracos.join(' · ')}</div>` : ''}
+    </div>` : `<div style="background:#111;border:1px solid #222;border-radius:8px;padding:12px;margin-bottom:20px;font-size:12px;color:#555;">Análise de IA não disponível para este perfil.</div>`;
+
+  document.getElementById('cp-body').innerHTML = `
+    ${aiHTML}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      ${[['Data de nascimento', d.dob||'—'],['Género',d.gender||'—'],['Telemóvel',d.phone||'—'],['Localidade',d.zip?d.address+', '+d.zip:d.address||'—']].map(([k,v])=>`
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">${k}</div>
+          <div style="font-size:13px;color:#ddd;">${v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      ${[['Habilitações', d.education+(d.institution?' — '+d.institution:'')],['Disponibilidade',d.location||'—'],['Pretensão salarial','€'+(d.salary||'—')+'/mês'],['LinkedIn',d.linkedin?`<a href="${d.linkedin}" target="_blank" style="color:var(--rhc-green);word-break:break-all;">${d.linkedin}</a>`:'—']].map(([k,v])=>`
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;">
+          <div style="font-size:10px;color:#555;text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px;">${k}</div>
+          <div style="font-size:13px;color:#ddd;">${v}</div>
+        </div>`).join('')}
+    </div>
+    <div style="margin-bottom:18px;">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Experiência profissional</div>
+      ${expHTML}
+    </div>
+    <div style="margin-bottom:4px;">
+      <div style="font-size:11px;color:#555;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Curriculum Vitae</div>
+      ${d.cvName ? `<div style="background:#0d0d0d;border:1px solid rgba(93,202,165,.2);border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">📄</span>
+        <div style="flex:1;">
+          <div style="font-size:13px;color:#ddd;">${d.cvName}</div>
+          <div style="font-size:11px;color:#555;">Submetido em ${new Date(d.submittedAt).toLocaleDateString('pt-PT')}</div>
+        </div>
+        ${d.cvData ? `<a href="${d.cvData}" download="${d.cvName}" style="background:var(--rhc-green-dark);color:var(--rhc-green);font-size:12px;padding:6px 12px;border-radius:6px;text-decoration:none;border:1px solid var(--rhc-green-dark);">⬇ Download</a>` : ''}
+      </div>` : '<span style="color:#555;font-size:13px;">CV não disponível</span>'}
+    </div>`;
+
+  // Hide approve button if already approved
+  const approveBtn = document.getElementById('cp-approve-btn');
+  if(approveBtn) approveBtn.style.display = c.status === 'Em análise' ? 'block' : 'none';
+
+  openModal('modal-candidate-profile');
+}
+
+async function approveCandidateFromProfile() {
+  const c = STATE.candidates.find(x=>x.id==_profileCandId);
+  if(!c) return;
+
+  const btn = document.getElementById('cp-approve-btn');
+  if(btn){ btn.disabled=true; btn.textContent='A processar...'; }
+
+  c.status = 'Aprovado';
+  c.score  = c.aiScreening?.pontuacao || null;
+  try { await supa.from('candidates').update({ status:'Aprovado', score: c.score }).eq('id', c.id); } catch(e){}
+
+  // Build the candidate's portal link
+  const _ij = STATE.jobs.find(j=>j.title===c.job);
+  const _ip = _ij?.idealProfile||'';
+  const portalLink = `https://rhccandidatos.vercel.app?company=${encodeURIComponent(PROFILE.company||PROFILE.name||'RHC')}&job=${encodeURIComponent(c.job||'')}&test=${encodeURIComponent(c.test||'')}&email=${encodeURIComponent(c.email||'')}&profile=${encodeURIComponent(_ip)}&approved=true`;
+
+  // Send approval email via Resend
+  try {
+    const candidateName = c.applicationData?.name || c.name || 'Candidato';
+    const firstName = candidateName.split(' ')[0];
+    const company   = PROFILE.company || PROFILE.name || 'RHC';
+    const job       = c.job || 'a vaga';
+
+    const emailBody = {
+      from: 'RHC Recrutamento <onboarding@resend.dev>',
+      to:   ['kikocameira2000@gmail.com'], // temporário até domínio verificado
+      subject: `✅ Foste seleccionado(a) para a próxima fase — ${job}`,
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#0e0e0e;color:#f5f3ef;border-radius:16px;overflow:hidden;">
+          <div style="background:#0F6E56;padding:32px 36px;">
+            <div style="font-size:26px;font-weight:700;letter-spacing:-1px;">RH<span style="color:#5DCAA5;">C</span></div>
+            <div style="font-size:13px;opacity:.7;margin-top:4px;">Portal de Recrutamento</div>
+          </div>
+          <div style="padding:36px;">
+            <h2 style="margin:0 0 16px;font-size:22px;color:#5DCAA5;">Olá, ${firstName}! 🎉</h2>
+            <p style="font-size:15px;line-height:1.7;color:#ccc;margin:0 0 20px;">
+              Temos boas notícias — o teu perfil foi analisado pela equipa da <strong style="color:#fff;">${company}</strong> e foste seleccionado(a) para avançar para a próxima fase do processo de recrutamento para a vaga de <strong style="color:#fff;">${job}</strong>.
+            </p>
+            <p style="font-size:15px;line-height:1.7;color:#ccc;margin:0 0 28px;">
+              A próxima etapa é um <strong style="color:#fff;">teste de perfil</strong>. Acede ao teu portal pessoal abaixo para o completar. Utiliza o email e a palavra-passe que criaste no registo.
+            </p>
+            <div style="text-align:center;margin:32px 0;">
+              <a href="${portalLink}" style="background:#5DCAA5;color:#0e0e0e;text-decoration:none;padding:14px 36px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block;">
+                Aceder ao portal e fazer o teste →
+              </a>
+            </div>
+            <div style="background:#161616;border:1px solid #2a2a2a;border-radius:10px;padding:16px 18px;font-size:12px;color:#666;line-height:1.7;">
+              <div style="color:#888;margin-bottom:4px;">Se o botão não funcionar, copia este link para o teu browser:</div>
+              <div style="color:#5DCAA5;word-break:break-all;">${portalLink}</div>
+            </div>
+          </div>
+          <div style="padding:20px 36px;border-top:1px solid #1e1e1e;font-size:12px;color:#444;text-align:center;">
+            Este email foi enviado pela plataforma RHC em nome de ${company}. Não respondas a este email.
+          </div>
+        </div>`
+    };
+
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer re_7UGoReNQ_PbRxTMt26ak5tt31ugeacGGY'
+      },
+      body: JSON.stringify(emailBody)
+    });
+
+    if(res.ok) {
+      showToast('✓ Candidato aprovado — email enviado para ' + c.email);
+    } else {
+      const err = await res.json();
+      console.warn('Resend error:', err);
+      showToast('✓ Candidato aprovado (email falhou: ' + (err.message||'erro') + ')');
+    }
+  } catch(e) {
+    console.warn('Resend fetch error:', e);
+    showToast('✓ Candidato aprovado — sem email (erro de rede)');
+  }
+
+  if(btn){ btn.disabled=false; btn.textContent='✓ Aprovado'; btn.style.background='#555'; }
+  closeModal('modal-candidate-profile');
+  refreshAll();
+}
+
+function openInviteLink(id) {
+  const c = STATE.candidates.find(x=>x.id==id);
+  if(!c) return;
+  const _ij = STATE.jobs.find(j=>j.title===c.job); const _ip = _ij?.idealProfile||'';
+  const link = `https://rhccandidatos.vercel.app?company=${encodeURIComponent(PROFILE.company||PROFILE.name||'RHC')}&job=${encodeURIComponent(c.job||'')}&test=${encodeURIComponent(c.test||'')}&email=${encodeURIComponent(c.email||'')}&profile=${encodeURIComponent(_ip)}`;
+  document.getElementById('invite-link-name').textContent  = c.name;
+  document.getElementById('invite-link-email').textContent = c.email;
+  document.getElementById('invite-link-url').textContent   = link;
+  document.getElementById('invite-link-url').dataset.url   = link;
+  openModal('modal-invite-link');
+}
+
+function copyInviteLink() {
+  const url = document.getElementById('invite-link-url').dataset.url;
+  if(!url) return;
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('✓ Link copiado para a área de transferência');
+    closeModal('modal-invite-link');
+  }).catch(() => {
+    // fallback for browsers that block clipboard
+    const ta = document.createElement('textarea');
+    ta.value = url; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    showToast('✓ Link copiado');
+    closeModal('modal-invite-link');
+  });
+}
+
+async function removeCandidate(id) {
+  const c = STATE.candidates.find(x=>x.id==id);
+  if(!c) return;
+  const isPending = c.status === 'Convidado';
+  const msg = isPending
+    ? `Cancelar o convite de ${c.name}?\n\nO link de convite deixará de funcionar e o candidato não conseguirá registar-se.`
+    : `Remover ${c.name}?\n\nTodos os registos e atividade associados a este candidato serão apagados.`;
+  if(!confirm(msg)) return;
+  STATE.candidates = STATE.candidates.filter(x=>x.id!=id);
+  STATE.activity = STATE.activity.filter(a => a.candidateId !== id && !a.text.toLowerCase().includes(c.name.toLowerCase()));
+  try { await deleteCandidate(id); } catch(e) { console.warn('Supabase delete failed:', e); }
+  refreshAll();
+  showToast(isPending ? 'Convite cancelado' : 'Candidato removido');
+}
+
+async function addJob() {
+  try {
+    const title    = document.getElementById('new-job-title')?.value.trim() || '';
+    const location = document.getElementById('new-job-location')?.value.trim() || '';
+    const type     = document.getElementById('new-job-type')?.value || 'Tempo inteiro';
+    const urgency  = document.getElementById('new-job-urgency')?.value || 'Ativo';
+    const test     = document.getElementById('new-job-test')?.value || '';
+    const profile  = document.getElementById('new-job-profile')?.value.trim() || '';
+
+    if(!title){ showToast('⚠️ Insira um título para a vaga'); return; }
+
+    const job = { id: STATE.nextId++, title, location: location||'Portugal', type, urgency, tags: [], test, idealProfile: profile };
+    STATE.jobs.push(job);
+    STATE.activity.unshift({ text: `Nova vaga "${title}" publicada`, time: Date.now(), candidateId: null });
+    try {
+      await saveJob(job);
+      await saveActivity(`Nova vaga "${title}" publicada`, null);
+    } catch(e) { console.warn('saveJob error:', e); }
+    closeModal('modal-add-job');
+    ['new-job-title','new-job-location','new-job-profile'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    refreshAll();
+    showToast('✓ Vaga publicada');
+  } catch(err) {
+    alert('Erro ao criar vaga: ' + err.message);
+  }
+}
+
+async function removeJob(id) {
+  const j = STATE.jobs.find(x=>x.id==id);
+  if(!j) return;
+  // Use custom confirm modal instead of browser confirm (blocked on some hosts)
+  document.getElementById('confirm-modal-msg').textContent = `Tem a certeza que pretende remover a vaga "${j.title}"? Esta acção não pode ser desfeita.`;
+  document.getElementById('confirm-modal-btn').onclick = async () => {
+    closeModal('modal-confirm');
+    STATE.jobs = STATE.jobs.filter(x=>x.id!=id);
+    STATE.activity.unshift({ text: `Vaga "${j.title}" removida`, time: Date.now(), candidateId: null });
+    try { await deleteJob(id); await saveActivity(`Vaga "${j.title}" removida`, null); } catch(e) { console.warn(e); }
+    refreshAll();
+    showToast('Vaga removida');
+  };
+  openModal('modal-confirm');
+}
+
+async function removeTest(id) {
+  const t = STATE.tests.find(x=>x.id==id);
+  if(!t) return;
+  const usedBy = STATE.candidates.filter(c=>c.test===t.name).length;
+  const msg = usedBy > 0
+    ? `Tem a certeza que pretende apagar o teste "${t.name}"?\n\nAtenção: ${usedBy} candidato(s) usaram este teste.`
+    : `Tem a certeza que pretende apagar o teste "${t.name}"?`;
+  document.getElementById('confirm-modal-msg').textContent = msg;
+  document.getElementById('confirm-modal-btn').onclick = async () => {
+    closeModal('modal-confirm');
+    closeModal('modal-test');
+    STATE.tests = STATE.tests.filter(x=>x.id!=id);
+    STATE.activity.unshift({ text: `Teste "${t.name}" apagado`, time: Date.now(), candidateId: null });
+    try { await deleteTest(id); await saveActivity(`Teste "${t.name}" apagado`, null); } catch(e) { console.warn(e); }
+    refreshAll();
+    showToast('Teste removido');
+  };
+  openModal('modal-confirm');
+}
+
+/* ============================================================
+   MODALS
+   ============================================================ */
+function openAddCandidate() {
+  populateModalSelects();
+  resetInviteForm();
+  // Show company name (read-only)
+  const compEl = document.getElementById('invite-company-display');
+  if(compEl) compEl.textContent = PROFILE.company || PROFILE.name || 'RHC';
+  // Also update preview company
+  const prevComp = document.getElementById('preview-company');
+  if(prevComp) prevComp.textContent = PROFILE.company || PROFILE.name || 'RHC';
+  openModal('modal-add-cand');
+}
+function openAddJob() {
+  populateModalSelects();
+  openModal('modal-add-job');
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function openTestModal(id) {
+  const t = STATE.tests.find(x=>x.id==id);
+  if(!t) return;
+  const liveCands = STATE.candidates.filter(c=>c.test===t.name);
+  const liveCount = liveCands.length;
+  const liveAvg   = liveCount ? Math.round(liveCands.reduce((a,c)=>a+(c.score||0),0)/liveCount) : null;
+  const catColors = {'Comportamental':'rgba(93,202,165,.12)','Situacional':'rgba(100,181,246,.12)','Motivacional':'rgba(239,184,74,.12)','Conhecimento':'rgba(206,147,216,.12)'};
+  const catText   = {'Comportamental':'#5DCAA5','Situacional':'#64b5f6','Motivacional':'#efb84a','Conhecimento':'#ce93d8'};
+
+  const RH_QUESTIONS = [
+    {cat:'Comportamental',text:'Tinhas três processos de recrutamento abertos com prazos diferentes. Como priorizaste?',opts:['Comecei pelo mais interessante','Organizei por urgência e impacto, comuniquei prazos e usei lista de tarefas','Pedi ao gestor para decidir','Tratei todos ao mesmo tempo'],correct:1},
+    {cat:'Comportamental',text:'Descobriste que um colega partilhava dados de candidatos fora do processo. Como reagiste?',opts:['Ignorei','Falei com colegas antes de agir','Reportei ao responsável com registo do que observei','Confrontei o colega à frente de todos'],correct:2},
+    {cat:'Comportamental',text:'Um colaborador novo disse sentir-se excluído. Qual foi a tua primeira ação?',opts:['Sugeri falar com o gestor sem envolvimento de RH','Ouvi com atenção e marquei reunião com o gestor','Disse que era normal nos primeiros meses','Enviei email a toda a equipa'],correct:1},
+    {cat:'Comportamental',text:'O candidato ficou em silêncio 30 segundos após pergunta difícil. O que fizeste?',opts:['Passei para a próxima pergunta','Repeti em voz mais alta','Dei espaço e reformulei sem dar a resposta','Disse a resposta certa'],correct:2},
+    {cat:'Comportamental',text:'Percebeste enviesamento ao avaliar candidato da tua universidade. Como agiste?',opts:['Considerei vantagem legítima','Reconheci o enviesamento e revi com critérios objetivos','Não fiz nada','Excluí o candidato'],correct:1},
+    {cat:'Comportamental',text:'Gestor insistia num candidato mas os resultados apontavam para outro. O que fizeste?',opts:['Aceitei sem questionar','Apresentei dados objetivamente e documentei a decisão','Bloqueei a contratação','Fui diretamente ao CEO'],correct:1},
+    {cat:'Comportamental',text:'Tinhas de dar feedback negativo a alguém que conhecias pessoalmente. Como abordaste?',opts:['Pedi a um colega para dar','Dei igual ao de qualquer candidato, claro e respeitoso','Adiei indefinidamente','Dei feedback mais suave do que o real'],correct:1},
+    {cat:'Comportamental',text:'A meio da formação o conteúdo não era útil. O que fizeste?',opts:['Continuei com o plano','Parei e cancelei tudo','Adaptei a abordagem no momento','Culpei o fornecedor'],correct:2},
+    {cat:'Comportamental',text:'Sobrecarregado, um colega pediu ajuda urgente. O que fizeste?',opts:['Ignorei','Aceitei tudo e fiquei mais sobrecarregado','Avaliei o que adiar e ajudei no essencial','Disse que não sem propor alternativa'],correct:2},
+    {cat:'Comportamental',text:'Colaborador agitado queixou-se do gestor por um email. Como reagiste?',opts:['Concordei para ele se acalmar','Ouvi, expliquei o processo formal e acompanhei','Disse que devia resolver com o gestor','Enviei email ao gestor a relatar'],correct:1},
+    {cat:'Situacional',text:'Gestor pede contratação urgente sem aprovação de budget. O que fazes?',opts:['Avanço porque o gestor tem autoridade','Recuso completamente','Explico que preciso de aprovação e ofereço ajudar a acelerar','Faço e peço aprovação retroativa'],correct:2},
+    {cat:'Situacional',text:'Gestor menciona que a gravidez de candidata é problema. Como ages?',opts:['Concordo porque o gestor conhece melhor','Explico que não pode ser critério por lei e documento','Excluo discretamente','Ignoro e deixo o gestor decidir'],correct:1},
+    {cat:'Situacional',text:'Sistema de RH em baixo e tens de processar salários amanhã. O que fazes?',opts:['Espero que volte','Cancelo o pagamento','Activo processo manual de contingência e contacto suporte','Peço a um colega para resolver'],correct:2},
+    {cat:'Situacional',text:'Dois candidatos equivalentes mas um pede 15% mais. Como apresentas a recomendação?',opts:['Recomendo o mais barato','Recomendo o mais caro por autoconfiança','Apresento análise objetiva e deixo a decisão à gestão','Digo que são iguais'],correct:2},
+    {cat:'Situacional',text:'Novo sistema de avaliação mas gestores resistentes. Qual é a tua abordagem?',opts:['Imponho porque foi decisão da direção','Abandono para não criar conflito','Envolvo os gestores e piloto com grupo menor','Lanço sem comunicar'],correct:2},
+    {cat:'Situacional',text:'Queixa anónima sobre gestor sénior. Como procedes?',opts:['Ignoro porque é anónimo','Falo diretamente com o gestor','Registo, avalio e sigo o processo formal mantendo anonimato','Partilho com a equipa'],correct:2},
+    {cat:'Situacional',text:'60% dos colaboradores classificam comunicação interna como fraca. O que propões?',opts:['Ignoro','Digo que estão errados','Analiso por departamento e proponho ações com métricas','Faço mais um inquérito'],correct:2},
+    {cat:'Situacional',text:'Candidato excelente recusa a oferta por salário abaixo do esperado. O que fazes?',opts:['Fecho o processo','Ofereço o dobro sem consultar','Verifico margem e apresento contraproposta fundamentada','Digo que é fixo'],correct:2},
+    {cat:'Situacional',text:'A empresa vai reduzir headcount. Qual é a tua prioridade imediata?',opts:['Comunicar o mais depressa sem preparação','Esperar que os rumores cheguem','Preparar com base legal e garantir comunicação digna','Deixar gestores comunicarem sozinhos'],correct:2},
+    {cat:'Situacional',text:'Colaborador pede processo individual de RH. Tens 48h por lei. Como organizas?',opts:['Digo que não tenho','Partilho tudo sem filtrar','Confirmo por escrito, reúno documentos e respondo no prazo','Adio para a semana seguinte'],correct:2},
+    {cat:'Motivacional',text:'O que te levou a querer trabalhar em Recursos Humanos?',opts:['Não me aceitaram noutras áreas','Tive experiência concreta que me fez perceber que era o que queria','Ouvi dizer que tem muito emprego','Os meus pais trabalham em RH'],correct:1},
+    {cat:'Motivacional',text:'Como defines o papel ideal de RH numa PME?',opts:['RH é administrativo','RH é parceiro estratégico que equilibra compliance com desenvolvimento','RH existe para proteger a empresa','RH faz o que a gestão mandar'],correct:1},
+    {cat:'Motivacional',text:'Onde te vês daqui a 3 anos na área de RH?',opts:['Não tenho plano','Quero ser CHRO de multinacional em 2 anos','Quero desenvolver competências e assumir mais responsabilidade estratégica','Prefiro não pensar no futuro'],correct:2},
+    {cat:'Motivacional',text:'Qual é a parte do trabalho de RH que consideras mais difícil?',opts:['Nada é difícil','Comunicar decisões difíceis mas sei que faz parte','Processamento salarial','O sistema informático'],correct:1},
+    {cat:'Motivacional',text:'Como te manténs atualizado sobre legislação laboral?',opts:['Pesquiso no Google quando preciso','Sigo publicações especializadas e faço formação periódica','Confio no que os colegas me dizem','Leio quando tenho tempo'],correct:1},
+    {cat:'Motivacional',text:'Que tipo de cultura te permite trabalhar melhor?',opts:['Adapto-me a qualquer cultura','Processos muito rígidos','Autonomia, feedback regular e respeito pelas pessoas','Prefiro trabalhar sozinho'],correct:2},
+    {cat:'Motivacional',text:'Numa PME com recursos limitados, como priorizas operacional vs estratégico?',opts:['Operacional tem sempre prioridade','O estratégico é mais importante','Automatizo o operacional e liberto tempo para maior impacto','Não é possível fazer os dois'],correct:2},
+    {cat:'Motivacional',text:'O que mudarias no processo de recrutamento tradicional?',opts:['Não mudava nada','Eliminava todas as entrevistas','Incorporaria triagem estruturada com critérios objetivos e redução de vieses','Deixaria os candidatos escolher a forma de avaliação'],correct:2},
+    {cat:'Motivacional',text:'Qual foi a iniciativa de que mais te orgulhaste em RH?',opts:['Nunca tive projetos relevantes','Orgulhei-me mais de receber elogios','Um projeto com impacto real nas pessoas ou resultados','Todos os projetos me deram igual orgulho'],correct:2},
+    {cat:'Motivacional',text:'O que te atrai nesta empresa para trabalhar em RH?',opts:['A localização e o salário','Quero ter o nome da empresa no CV','Alinhamento entre os valores e o que quero desenvolver','Candidatei-me a muitos sítios e esta foi a primeira a responder'],correct:2},
+    {cat:'Conhecimento',text:'Duração máxima de um contrato a termo certo em Portugal incluindo renovações?',opts:['1 ano','2 anos','3 anos','5 anos'],correct:2},
+    {cat:'Conhecimento',text:'Quantas horas de formação contínua tem direito um trabalhador a tempo inteiro por ano?',opts:['20 horas','35 horas','40 horas','50 horas'],correct:2},
+    {cat:'Conhecimento',text:'Período experimental para contrato sem termo numa função de direção ou elevada complexidade?',opts:['90 dias','180 dias','240 dias','365 dias'],correct:2},
+    {cat:'Conhecimento',text:'O que é o Relatório Único e a que organismo é submetido?',opts:['Relatório financeiro para o Ministério das Finanças','Relatório de atividade social submetido à ACT','Relatório de género para a CITE','Relatório de formação para o IEFP'],correct:1},
+    {cat:'Conhecimento',text:'Base legal correta para tratamento de dados de colaboradores ao abrigo do RGPD?',opts:['Consentimento em todos os casos','Execução do contrato de trabalho para dados necessários','Interesse legítimo em qualquer situação','Não é necessária base legal'],correct:1},
+    {cat:'Conhecimento',text:'Colaborador com salário base 1.400€. Valor correto do subsídio de férias?',opts:['1.400€ — apenas salário base','1.532€ incluindo alimentação proporcional','700€ porque é meio subsídio','1.406€'],correct:0},
+    {cat:'Conhecimento',text:'O que é o onboarding estruturado e qual o seu principal objetivo?',opts:['Processo administrativo de admissão','Processo planeado de integração que acelera produtividade e pertença','Formação técnica obrigatória nos primeiros dias','Avaliação de desempenho do período experimental'],correct:1},
+    {cat:'Conhecimento',text:'KPI mais direto para medir a eficácia do recrutamento?',opts:['Número total de candidaturas','Tempo médio de recrutamento e qualidade dos contratados a 6 meses','Custo total do departamento','Número de entrevistas realizadas'],correct:1},
+    {cat:'Conhecimento',text:'Diferença entre avaliação de desempenho e gestão de desempenho?',opts:['São a mesma coisa','A avaliação é pontual; a gestão é processo contínuo de acompanhamento e desenvolvimento','A gestão é feita pelo RH e a avaliação pelos gestores','A avaliação é para sénior e a gestão para júniores'],correct:1},
+    {cat:'Conhecimento',text:'Taxa de rotatividade (turnover) e como se calcula?',opts:['Contratações no ano dividido pelos colaboradores','Saídas num período dividido pela média de colaboradores × 100','Percentagem de colaboradores satisfeitos','Custo de recrutamento dividido pelo número de vagas'],correct:1},
+  ];
+
+  const questionsToShow = t.name === 'Teste RH' ? RH_QUESTIONS : null;
+  document.getElementById('modal-test-title').textContent = t.name;
+  document.getElementById('modal-test-body').innerHTML = `
+    <div class="modal-section">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:500;color:var(--rhc-green);">${liveCount}</div>
+          <div style="font-size:11px;color:#555;margin-top:2px;">Candidatos</div>
+        </div>
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:500;color:var(--rhc-green);">${liveAvg!=null?liveAvg+'%':'—'}</div>
+          <div style="font-size:11px;color:#555;margin-top:2px;">Média</div>
+        </div>
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px;text-align:center;">
+          <div style="font-size:22px;font-weight:500;color:var(--rhc-green);">${t.questions}</div>
+          <div style="font-size:11px;color:#555;margin-top:2px;">Questões</div>
+        </div>
+      </div>
+      ${liveCount > 0 ? `
+      <div class="modal-section-title" style="margin-bottom:8px;">Candidatos neste teste</div>
+      ${liveCands.map(c=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1a1a1a;">
+          <div style="width:26px;height:26px;border-radius:50%;background:var(--rhc-green-dark);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;color:var(--rhc-green);flex-shrink:0;">${initials(c.name)}</div>
+          <div style="font-size:13px;color:#ccc;flex:1;">${c.name}</div>
+          <div style="font-size:12px;font-weight:500;color:${scoreColor(c.score)};">${c.score||'—'}%</div>
+          <span class="status-pill" style="${statusStyle(c.status)};font-size:10px;">${c.status}</span>
+        </div>`).join('')}
+      ` : ''}
+      <div class="modal-section-title" style="margin-bottom:10px;margin-top:${liveCount>0?'14px':'0'};">
+        ${questionsToShow ? 'Todas as questões (40)' : 'Questões'}
+      </div>
+      ${questionsToShow ? questionsToShow.map((q,i)=>`
+        <div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:12px 14px;margin-bottom:8px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+            <span style="font-size:11px;color:#444;">${i+1}.</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${catColors[q.cat]||'rgba(93,202,165,.1)'};color:${catText[q.cat]||'#5DCAA5'};">${q.cat}</span>
+          </div>
+          <div style="font-size:13px;color:#ccc;line-height:1.5;margin-bottom:8px;">${q.text}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+            ${q.opts.map((o,oi)=>`<div style="background:#111;border:1px solid ${oi===q.correct?'rgba(93,202,165,.4)':'#1e1e1e'};border-radius:6px;padding:5px 8px;font-size:11px;color:${oi===q.correct?'var(--rhc-green)':'#666'};">${['A','B','C','D'][oi]}) ${o}</div>`).join('')}
+          </div>
+        </div>`).join('')
+      : (t.sampleQ&&t.sampleQ.length ? t.sampleQ.map((q,i)=>`<div style="background:#0d0d0d;border:1px solid #1e1e1e;border-radius:8px;padding:10px 12px;margin-bottom:6px;"><div style="font-size:12px;color:#ccc;">${i+1}. ${q}</div></div>`).join('') : '<div style="color:#555;font-size:13px;">Questões não disponíveis.</div>')}
+      <div style="margin-top:16px;padding-top:14px;border-top:1px solid #1e1e1e;">
+        <button onclick="removeTest('${t.id}');" style="background:rgba(226,107,107,.08);border:1px solid rgba(226,107,107,.3);border-radius:8px;color:#e26b6b;font-size:13px;cursor:pointer;padding:9px 18px;width:100%;transition:all .15s;" onmouseover="this.style.background='rgba(226,107,107,.15)';" onmouseout="this.style.background='rgba(226,107,107,.08)';">Apagar este teste</button>
+      </div>
+    </div>`;
+  openModal('modal-test');
+}
+
+function openEval(id) {
+  const c = STATE.candidates.find(x=>x.id===id);
+  if(!c) return;
+  const score = c.score;
+  document.getElementById('eval-title').textContent = `Avaliação IA — ${c.name}`;
+  const color = scoreColor(score);
+  const verdict = score>=80
+    ? `${c.name} demonstra competências técnicas sólidas e acima da média para o nível exigido. Recomenda-se avançar para entrevista técnica aprofundada. Pontos fortes: raciocínio lógico, comunicação escrita e qualidade das respostas práticas.`
+    : score>=60
+    ? `${c.name} apresenta conhecimentos adequados mas com algumas lacunas. Pode ser considerado(a) com acompanhamento inicial. Recomenda-se sessão de calibração antes da decisão final.`
+    : `${c.name} não atingiu o mínimo recomendado para esta função. As respostas demonstram lacunas relevantes nas competências técnicas exigidas. Não recomendado para avançar nesta ronda.`;
+  const rec = score>=80 ? '✅ Recomendado para entrevista' : score>=60 ? '⚠️ Consideração condicional' : '❌ Não recomendado';
+  const seed = c.id * 13;
+  const dims = [
+    { label:'Conhecimento técnico', val: Math.min(100,Math.max(10, Math.round(score*0.95+(seed%9)-4))) },
+    { label:'Raciocínio lógico',    val: Math.min(100,Math.max(10, Math.round(score*0.90+(seed%11)-5))) },
+    { label:'Comunicação',          val: Math.min(100,Math.max(10, Math.round(score*1.05+(seed%8)-4))) },
+    { label:'Resolução de problemas',val:Math.min(100,Math.max(10, Math.round(score   +(seed%13)-6))) }
+  ];
+  document.getElementById('eval-body').innerHTML = `
+    <div class="eval-score-ring" style="border-color:${color};">
+      <div class="eval-score-num" style="color:${color};">${score}%</div>
+      <div class="eval-score-label">pontuação</div>
+    </div>
+    <div style="text-align:center;font-size:13px;color:#888;margin-bottom:16px;">${rec}</div>
+    <div class="modal-section">
+      <div class="modal-section-title">Dimensões avaliadas</div>
+      ${dims.map(d=>`<div class="eval-dimension">
+        <div class="eval-dim-label">${d.label}</div>
+        <div class="eval-dim-bar"><div class="eval-dim-fill" style="width:${d.val}%;background:${d.val>=70?'var(--rhc-green-mid)':d.val>=50?'#efb84a':'#e26b6b'};"></div></div>
+        <div class="eval-dim-val">${d.val}%</div>
+      </div>`).join('')}
+    </div>
+    <div class="ai-verdict">
+      <div class="ai-verdict-label">✦ Análise gerada por IA</div>
+      <div class="ai-verdict-text">${verdict}</div>
+    </div>`;
+  openModal('modal-eval');
+}
+
+/* ============================================================
+   BASE MODEL — 10 behavioural questions (fixed template)
+   ============================================================ */
+const BASE_MODEL_QUESTIONS = [
+  {
+    text: 'Num dia da semana, o que preferes?',
+    opt1: 'Tarefas repetidas',    tag1: 'Rotina',
+    opt2: 'Tarefas novas',        tag2: 'Inovação',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Identificas-te mais como:',
+    opt1: 'Confiante',            tag1: 'Extrovertido',
+    opt2: 'Tímido',               tag2: 'Introvertido',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Durante o fim de semana, pensas no trabalho?',
+    opt1: 'Sim',                  tag1: 'Alta dedicação',
+    opt2: 'Não',                  tag2: 'Equilíbrio vida/trabalho',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'O que preferes seguir?',
+    opt1: 'Processos definidos',  tag1: 'Estruturado',
+    opt2: 'Sem processos fixos',  tag2: 'Flexível',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Onde preferes trabalhar?',
+    opt1: 'Escritório privado',   tag1: 'Foco individual',
+    opt2: 'Open space',           tag2: 'Colaborativo',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Num trabalho de grupo, normalmente és quem:',
+    opt1: 'Sugere ideias',        tag1: 'Líder / Criativo',
+    opt2: 'Segue as ideias dos outros', tag2: 'Executor / Colaborador',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Preferes trabalhar:',
+    opt1: 'Sozinho',              tag1: 'Autónomo',
+    opt2: 'Em grupo',             tag2: 'Colaborativo',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Tens uma reunião espontânea com o CEO. Como te sentes?',
+    opt1: 'Nervoso(a)',           tag1: 'Reservado',
+    opt2: 'Confiante',            tag2: 'Assertivo',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Que tipo de CRM preferes?',
+    opt1: 'Salesforce',           tag1: 'Enterprise',
+    opt2: 'Odoo',                 tag2: 'SMB / Open source',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  },
+  {
+    text: 'Que tipo de trabalho preferes?',
+    opt1: 'Rotina estável',       tag1: 'Consistência',
+    opt2: 'Mudança diária',       tag2: 'Dinamismo',
+    type: 'Perfil comportamental', difficulty: 'Base'
+  }
+];
+
+let pendingTest = null;
+
+function openCreateTest() {
+  document.getElementById('gen-result').style.display='none';
+  document.getElementById('gen-icon').textContent='✦';
+  document.getElementById('gen-text').textContent='Gerar questões com IA';
+  document.getElementById('btn-gen').disabled=false;
+  document.getElementById('gen-role').value='';
+  document.getElementById('gen-nq').value='30';
+  pendingTest = null;
+  openModal('modal-create');
+}
+
+function onNqChange() {
+  const nq = document.getElementById('gen-nq').value;
+  const banner  = document.getElementById('base-model-banner');
+  const genBtn  = document.getElementById('btn-gen');
+  const genText = document.getElementById('gen-text');
+  if(nq === '10') {
+    banner.style.display = 'block';
+    genText.textContent  = 'Usar modelo base (10 questões)';
+  } else {
+    banner.style.display = 'none';
+    genText.textContent  = 'Gerar questões com IA';
+  }
+  // reset result area
+  document.getElementById('gen-result').style.display = 'none';
+  pendingTest = null;
+}
+
+function openBaseModelPreview() {
+  const list = document.getElementById('base-questions-list');
+  list.innerHTML = BASE_MODEL_QUESTIONS.map((q, i) => `
+    <div class="question-block" style="margin-bottom:10px;">
+      <div class="question-text" style="margin-bottom:8px;font-weight:500;">${i+1}. ${q.text}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="background:#111;border:1px solid #222;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:12px;color:#ccc;">A) ${q.opt1}</div>
+          <div style="font-size:10px;color:var(--rhc-green-dark);margin-top:3px;">→ ${q.tag1}</div>
+        </div>
+        <div style="background:#111;border:1px solid #222;border-radius:6px;padding:8px 10px;">
+          <div style="font-size:12px;color:#ccc;">B) ${q.opt2}</div>
+          <div style="font-size:10px;color:var(--rhc-green-dark);margin-top:3px;">→ ${q.tag2}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  openModal('modal-base-preview');
+}
+
+async function generateTest() {
+  const role     = (document.getElementById('gen-role').value || '').trim();
+  const level    = document.getElementById('gen-level').value;
+  const nq       = parseInt(document.getElementById('gen-nq').value);
+  const duration = document.getElementById('gen-duration').value;
+  const btn      = document.getElementById('btn-gen');
+
+  if(!role) { showToast('⚠️ Insira a função/cargo para gerar o teste'); return; }
+
+  btn.disabled = true;
+  document.getElementById('gen-icon').innerHTML='<span class="loading-dots"><span></span><span></span><span></span></span>';
+  document.getElementById('gen-text').textContent='A gerar questões...';
+  document.getElementById('gen-result').style.display='none';
+  pendingTest = null;
+
+  // Calculate category distribution — always sums exactly to nq
+  const comp = Math.floor(nq * 0.30);
+  const sit  = Math.floor(nq * 0.25);
+  const func = Math.floor(nq * 0.30);
+  const mot  = nq - comp - sit - func;  // remainder ensures exact total
+
+  try {
+    const prompt = `Cria EXACTAMENTE ${nq} questões de teste de recrutamento para a função "${role}" nível ${level} em Portugal. O array JSON deve ter EXACTAMENTE ${nq} elementos — nem mais nem menos.
+
+Distribui as questões assim (total = ${nq}):
+- ${comp} questões COMPORTAMENTAIS
+- ${sit} questões SITUACIONAIS
+- ${func} questões FUNCIONAIS/TÉCNICAS (conhecimento específico de ${role})
+- ${mot} questões MOTIVACIONAIS
+
+Cada questão tem 4 opções (A, B, C, D) e uma resposta correcta. Adapta o conteúdo à função de ${role}.
+
+Responde APENAS com JSON válido, sem texto adicional, com exactamente ${nq} questões no array:
+{
+  "questions": [
+    {
+      "text": "texto da questão",
+      "cat": "Comportamental|Situacional|Funcional|Motivacional",
+      "opts": ["opção A", "opção B", "opção C", "opção D"],
+      "correct": 0,
+      "difficulty": "Fácil|Médio|Difícil"
+    }
+  ]
+}`;
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 8000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if(!res.ok) throw new Error('API error ' + res.status);
+
+    const data = await res.json();
+    const raw  = data.content.map(i => i.text||'').join('');
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+
+    // Ensure exact question count
+    if(parsed.questions.length > nq) parsed.questions = parsed.questions.slice(0, nq);
+    if(!parsed.questions || !parsed.questions.length) throw new Error('Sem questões na resposta');
+
+    const catColors = {
+      'Comportamental': 'rgba(93,202,165,.15)',
+      'Situacional':    'rgba(100,181,246,.15)',
+      'Funcional':      'rgba(206,147,216,.15)',
+      'Motivacional':   'rgba(239,184,74,.15)'
+    };
+    const catText = {
+      'Comportamental': '#5DCAA5',
+      'Situacional':    '#64b5f6',
+      'Funcional':      '#ce93d8',
+      'Motivacional':   '#efb84a'
+    };
+
+    const ql = document.getElementById('questions-list');
+    document.getElementById('gen-result-title').textContent = `${parsed.questions.length} questões geradas — ${role} (${level})`;
+    ql.innerHTML = parsed.questions.map((q, i) => `
+      <div class="question-block" style="margin-bottom:10px;border:1px solid #1e1e1e;border-radius:8px;padding:12px 14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <span style="font-size:11px;color:#555;">${i+1}.</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${catColors[q.cat]||'rgba(93,202,165,.1)'};color:${catText[q.cat]||'#5DCAA5'};">${q.cat}</span>
+          <span style="font-size:10px;color:#444;">${q.difficulty}</span>
+        </div>
+        <div class="question-text" style="margin-bottom:8px;font-size:13px;color:#ccc;">${q.text}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+          ${(q.opts||[]).map((o,oi)=>`
+            <div style="background:#0d0d0d;border:1px solid ${oi===q.correct?'rgba(93,202,165,.4)':'#1e1e1e'};border-radius:6px;padding:6px 9px;font-size:11px;color:${oi===q.correct?'var(--rhc-green)':'#888'};">
+              ${['A','B','C','D'][oi]}) ${o}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+
+    document.getElementById('gen-result').style.display = 'block';
+    pendingTest = { role, level, nq, duration: parseInt(duration), isBaseModel: false, questions: parsed.questions };
+
+  } catch(e) {
+    console.warn('generateTest error:', e);
+    document.getElementById('questions-list').innerHTML = `
+      <div class="question-block" style="color:#e26b6b;">
+        Erro ao gerar questões: ${e.message}.<br>
+        <span style="font-size:12px;color:#666;">Verifica a ligação e tenta novamente.</span>
+      </div>`;
+    document.getElementById('gen-result').style.display = 'block';
+  }
+
+  btn.disabled = false;
+  document.getElementById('gen-icon').textContent = '✦';
+  document.getElementById('gen-text').textContent = 'Regenerar questões';
+}
+
+async function saveGeneratedTest() {
+  if(!pendingTest) { closeModal('modal-create'); return; }
+  const baseName = `${pendingTest.role} (${pendingTest.level})`;
+  const newTest = {
+    id: STATE.nextId++, icon: '', name: baseName,
+    questions: pendingTest.nq, duration: pendingTest.duration,
+    level: pendingTest.level, status: 'active',
+    isBaseModel: false,
+    sampleQ: pendingTest.questions.map(q => q.text)
+  };
+  STATE.tests.push(newTest);
+  STATE.activity.unshift({ text:`Teste "${newTest.name}" criado`, time: Date.now(), candidateId: null });
+  try { await saveTest(newTest); await saveActivity(STATE.activity[0].text, null); } catch(e) { console.warn(e); }
+  closeModal('modal-create');
+  refreshAll();
+  showTab('tests');
+}
+
+/* ============================================================
+/* ============================================================
+   SUPABASE — client + auth + data layer
+   ============================================================ */
+const SUPA_URL = 'https://sgecgsnxljohhfbftevg.supabase.co';
+const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNnZWNnc254bGpvaGhmYmZ0ZXZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3NzMzNjQsImV4cCI6MjA5MjM0OTM2NH0.Igv5qrLk8NwsheStNv7VY4cvdCO-svEGx6S89OZubps';
+const supa = supabase.createClient(SUPA_URL, SUPA_KEY);
+
+let currentOrgId   = null;
+let currentSession = null;
+
+/* ── helpers ── */
+function getAuthError(id){ const e=document.getElementById(id); if(e){e.style.display='none';} }
+function showAuthErr(id, msg){ const e=document.getElementById(id); if(e){e.textContent=msg;e.style.display='block';} else alert(msg); }
+function setAuthBtn(id, loading, label){
+  const b=document.getElementById(id); if(!b)return;
+  b.disabled=loading;
+  b.textContent=loading?'A processar...' : label;
+}
+
+/* ── ensure org exists for recruiter ── */
+async function ensureOrg(userId, name, email) {
+  const { data: existing } = await supa.from('organizations').select('id').eq('owner_id', userId).maybeSingle();
+  if(existing) return existing.id;
+  // Use company from user_metadata if available, else recruiter name
+  const { data: { user } } = await supa.auth.getUser();
+  const orgName = user?.user_metadata?.company || name || email.split('@')[0];
+  const slug = email.split('@')[0].replace(/[^a-z0-9]/gi,'').toLowerCase() + '_' + Date.now();
+  const { data: org, error } = await supa.from('organizations').insert({ name: orgName, slug, owner_id: userId }).select('id').single();
+  if(error) throw error;
+  return org.id;
+}
+
+/* ── load org data into STATE ── */
+async function loadOrgData(orgId) {
+  currentOrgId = orgId;
+  const [cands, jobs, tests, acts, apps] = await Promise.all([
+    supa.from('candidates').select('*').eq('org_id', orgId).order('added_at', { ascending: false }),
+    supa.from('jobs').select('*').eq('org_id', orgId).order('created_at', { ascending: false }),
+    supa.from('tests').select('*').eq('org_id', orgId).order('created_at', { ascending: false }),
+    supa.from('activity').select('*').eq('org_id', orgId).order('created_at', { ascending: false }).limit(20),
+    supa.from('applications').select('*').eq('org_id', orgId).order('submitted_at', { ascending: false })
+  ]);
+
+  // Build email → application map
+  const appMap = {};
+  (apps.data||[]).forEach(a => { appMap[a.email] = a; });
+
+  // Map DB rows → STATE shape, merging application data
+  STATE.candidates = (cands.data||[]).map(r=>{
+    const app = appMap[r.email] || null;
+    return {
+      id: r.id, name: r.name, email: r.email, job: r.job||'', test: r.test_name||'',
+      score: r.score, status: r.status||'Convidado', addedAt: new Date(r.added_at).getTime(),
+      applicationData: app ? {
+        name: app.name, dob: app.dob, gender: app.gender, phone: app.phone,
+        address: app.address, zip: app.zip, education: app.education, institution: app.institution,
+        linkedin: app.linkedin, experience: app.experience||[], noExp: app.no_exp,
+        location: app.location_pref, salary: app.salary, cvName: app.cv_name, cvData: app.cv_data,
+        submittedAt: new Date(app.submitted_at).getTime()
+      } : null,
+      aiScreening: app ? {
+        pontuacao: app.ai_score, resumo: app.ai_summary, aprovado: app.ai_approved,
+        pontos_fortes: app.ai_strengths||[], pontos_fracos: app.ai_weaknesses||[]
+      } : null
+    };
+  });
+
+  STATE.jobs = (jobs.data||[]).map(r=>({
+    id: r.id, title: r.title, location: r.location||'', type: r.type||'Tempo inteiro',
+    urgency: r.urgency||'Ativo', tags: r.tags||[], test: r.test_name||'',
+    idealProfile: r.ideal_profile||''
+  }));
+  STATE.tests = (tests.data||[]).map(r=>({
+    id: r.id, icon: r.icon||'📋', name: r.name, questions: r.questions||10,
+    duration: r.duration||30, level: r.level||'Júnior', status: r.status||'active',
+    sampleQ: r.sample_q||[], isBaseModel: r.is_base_model||false
+  }));
+  STATE.activity = (acts.data||[]).map(r=>({
+    text: r.text, time: new Date(r.created_at).getTime(), candidateId: r.candidate_id||null
+  }));
+
+  // Data loaded successfully
+}
+
+/* ── save helpers — write to Supabase ── */
+async function saveCandidate(c) {
+  const row = { org_id: currentOrgId, name: c.name, email: c.email, job: c.job,
+    test_name: c.test, score: c.score, status: c.status };
+  if(typeof c.id === 'number') {
+    // New — insert
+    const { data, error } = await supa.from('candidates').insert(row).select('id').single();
+    if(error) throw error;
+    c.id = data.id; // replace numeric id with UUID
+  } else {
+    await supa.from('candidates').update({ score: c.score, status: c.status }).eq('id', c.id);
+  }
+}
+
+async function deleteCandidate(id) {
+  await supa.from('candidates').delete().eq('id', id);
+  await supa.from('activity').delete().eq('candidate_id', id);
+}
+
+async function saveJob(j) {
+  const row = { org_id: currentOrgId, title: j.title, location: j.location,
+    type: j.type, urgency: j.urgency, tags: j.tags, test_name: j.test,
+    ideal_profile: j.idealProfile||'' };
+  if(typeof j.id === 'number') {
+    const { data, error } = await supa.from('jobs').insert(row).select('id').single();
+    if(error) throw error;
+    j.id = data.id;
+  }
+}
+
+async function deleteJob(id) {
+  await supa.from('jobs').delete().eq('id', id);
+}
+
+async function saveTest(t) {
+  const row = { org_id: currentOrgId, icon: t.icon, name: t.name, questions: t.questions,
+    duration: t.duration, level: t.level, status: t.status, sample_q: t.sampleQ||[], is_base_model: t.isBaseModel||false };
+  if(typeof t.id === 'number') {
+    const { data, error } = await supa.from('tests').insert(row).select('id').single();
+    if(error) throw error;
+    t.id = data.id;
+  }
+}
+
+async function deleteTest(id) {
+  await supa.from('tests').delete().eq('id', id);
+}
+
+async function saveActivity(text, candidateId) {
+  await supa.from('activity').insert({ org_id: currentOrgId, text, candidate_id: candidateId||null });
+}
+
+/* ── AUTH — Supabase Auth ── */
+const ACCOUNTS_KEY = 'rhc_accounts_legacy'; // keep key but won't be used
+const SESSION_KEY  = 'rhc_session_legacy';
+
+function switchAuthTab(t) {
+  document.getElementById('tab-login').classList.toggle('active', t==='login');
+  document.getElementById('tab-register').classList.toggle('active', t==='register');
+  document.getElementById('login-form').style.display    = t==='login'    ? 'block' : 'none';
+  document.getElementById('register-form').style.display = t==='register' ? 'block' : 'none';
+  document.getElementById('login-error').style.display = 'none';
+  document.getElementById('reg-error').style.display   = 'none';
+}
+
+function showAuthError(formId, msg) {
+  const el = document.getElementById(formId);
+  if(el){ el.textContent = msg; el.style.display = 'block'; }
+}
+
+async function enterApp(user, name) {
+  try {
+    showToast('A carregar os seus dados...');
+    const orgId = await ensureOrg(user.id, name||user.user_metadata?.name||user.email.split('@')[0], user.email);
+    await loadOrgData(orgId);
+
+    PROFILE.name  = name || user.user_metadata?.name || user.email.split('@')[0];
+    PROFILE.email = user.email;
+
+    // Company: prefer user_metadata, then fetch org name from DB, then fallback to recruiter name
+    let company = user.user_metadata?.company || '';
+    if(!company && currentOrgId) {
+      try {
+        const { data: orgRow } = await supa.from('organizations').select('name').eq('id', currentOrgId).maybeSingle();
+        if(orgRow?.name) company = orgRow.name;
+      } catch(e) {}
+    }
+    PROFILE.company = company || PROFILE.company || PROFILE.name;
+
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(PROFILE)); } catch(e) {}
+
+    document.getElementById('page-auth').style.display = 'none';
+    document.getElementById('page-main').style.display = 'flex';
+    document.getElementById('chatbot-btn').style.display = 'flex';
+    applyProfile();
+    refreshAll();
+    showToast('✓ Bem-vindo!');
+  } catch(err) {
+    alert('Erro ao entrar na plataforma: ' + err.message);
+  }
+}
+
+async function doLogin() {
+  try {
+    const email    = (document.getElementById('login-email')?.value    || '').trim().toLowerCase();
+    const password = (document.getElementById('login-password')?.value || '');
+    const errorEl  = document.getElementById('login-error');
+    if(errorEl) errorEl.style.display = 'none';
+
+    if(!email || !password) { showAuthError('login-error','Por favor preencha o email e a palavra-passe.'); return; }
+
+    const btn = document.getElementById('btn-login');
+    if(btn){ btn.disabled=true; btn.textContent='A entrar...'; }
+
+    const { data, error } = await supa.auth.signInWithPassword({ email, password });
+
+    if(btn){ btn.disabled=false; btn.textContent='Entrar na plataforma'; }
+
+    if(error) { showAuthError('login-error', error.message === 'Invalid login credentials' ? 'Email ou palavra-passe incorretos.' : error.message); return; }
+
+    await enterApp(data.user, data.user.user_metadata?.name);
+  } catch(err) {
+    alert('Erro ao entrar: ' + err.message);
+  }
+}
+
+async function doRegister() {
+  try {
+    const nameEl    = document.getElementById('reg-name');
+    const emailEl   = document.getElementById('reg-email');
+    const passEl    = document.getElementById('reg-password');
+    const companyEl = document.getElementById('reg-company');
+    const errorEl   = document.getElementById('reg-error');
+
+    const name    = (nameEl?.value    || '').trim();
+    const email   = (emailEl?.value   || '').trim().toLowerCase();
+    const password= (passEl?.value    || '');
+    const company = (companyEl?.value || '').trim();
+
+    if(errorEl) errorEl.style.display = 'none';
+
+    if(!name)                        { showAuthError('reg-error','Insira o seu nome completo.'); return; }
+    if(!email||!email.includes('@')) { showAuthError('reg-error','Insira um email válido.'); return; }
+    if(!company)                     { showAuthError('reg-error','Insira o nome da empresa.'); return; }
+    if(password.length < 6)          { showAuthError('reg-error','A palavra-passe deve ter pelo menos 6 caracteres.'); return; }
+
+    const btn = document.getElementById('btn-register');
+    if(btn){ btn.disabled=true; btn.textContent='A criar conta...'; }
+
+    const { data, error } = await supa.auth.signUp({
+      email, password,
+      options: { data: { name, company } }
+    });
+
+    if(btn){ btn.disabled=false; btn.textContent='Criar conta e entrar'; }
+
+    if(error) { showAuthError('reg-error', error.message); return; }
+    if(!data.user) { showAuthError('reg-error','Erro ao criar conta. Tente novamente.'); return; }
+
+    await enterApp(data.user, name);
+  } catch(err) {
+    alert('Erro ao criar conta: ' + err.message);
+  }
+}
+
+async function doLogout() {
+  await supa.auth.signOut();
+  currentOrgId = null;
+  document.getElementById('page-auth').style.display = 'flex';
+  document.getElementById('page-main').style.display = 'none';
+  document.getElementById('chatbot-btn').style.display = 'none';
+  document.getElementById('chatbot-panel').classList.remove('open');
+  const e = document.getElementById('login-email'); if(e) e.value='';
+  const p = document.getElementById('login-password'); if(p) p.value='';
+  document.getElementById('login-error').style.display = 'none';
+  switchAuthTab('login');
+}
+
+function showTab(t) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach((b,i)=>{
+    b.classList.toggle('active',['dashboard','tests','candidates','jobs'][i]===t);
+  });
+  // Re-render on tab switch to ensure freshness
+  if(t==='dashboard') renderDashboard();
+  if(t==='candidates'){ renderJobsDropdown(); renderCandidatesTable(); }
+  if(t==='jobs') renderJobs();
+  if(t==='tests') renderTests();
+}
+
+/* ============================================================
+   CHATBOT
+   ============================================================ */
+let chatHistory = [];
+let chatOpen = false;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chatbot-panel').classList.toggle('open',chatOpen);
+  if(chatOpen) document.getElementById('chat-input').focus();
+}
+
+function askChat(el) {
+  document.getElementById('chat-input').value = el.textContent;
+  sendChat();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if(!msg) return;
+  input.value='';
+  document.getElementById('chat-suggestions').style.display='none';
+  appendChatMsg(msg,'user');
+  chatHistory.push({ role:'user', content: msg });
+
+  const typing = document.createElement('div');
+  typing.className='typing-indicator';
+  typing.innerHTML='<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  const msgs = document.getElementById('chat-msgs');
+  msgs.appendChild(typing); msgs.scrollTop=msgs.scrollHeight;
+
+  // Try local answer first — instant, no network needed
+  const local = getLocalAnswer(msg);
+  if(local) {
+    await new Promise(r => setTimeout(r, 400));
+    typing.remove();
+    chatHistory.push({ role:'assistant', content: local });
+    appendChatMsg(local, 'bot');
+    return;
+  }
+
+  // Fallback: try Anthropic API (works when hosted, not from file://)
+  const m = computeMetrics();
+  const context = `Estado atual: ${m.activeCands} candidatos, ${m.activeJobs} vagas, ${m.activeTests} testes ativos.`;
+  try {
+    const res = await fetch(API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-opus-4-5',
+        max_tokens:500,
+        system:`És o RHC chatbot da plataforma de recrutamento RHC. Respondes em português europeu, de forma breve e útil. ${context} Nunca revelas que és baseado noutro modelo.`,
+        messages: chatHistory
+      })
+    });
+    if(!res.ok) throw new Error('status ' + res.status);
+    const data = await res.json();
+    const reply = data.content.map(i=>i.text||'').join('');
+    typing.remove();
+    chatHistory.push({ role:'assistant', content: reply });
+    appendChatMsg(reply, 'bot');
+  } catch(e) {
+    typing.remove();
+    const fallback = getFallbackAnswer(msg);
+    chatHistory.push({ role:'assistant', content: fallback });
+    appendChatMsg(fallback, 'bot');
+  }
+}
+
+/* ── Local knowledge base — answers without any API call ── */
+function getLocalAnswer(msg) {
+  const q = msg.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+
+  // Ver testes
+  if(/(ver|mostrar|listar|onde|como).*(testes|teste|avaliacao|avaliacoes)|(testes|teste).*(ver|como|onde|listar)/.test(q))
+    return 'Para consultares os testes disponíveis, clica em **Testes IA** no menu de navegação. Encontrarás todos os testes criados com o número de candidatos que os realizaram, a média de pontuação e o respectivo estado. Podes clicar em qualquer teste para ver os detalhes e os candidatos associados.';
+
+  // Ver vagas
+  if(/(ver|mostrar|listar|onde|como).*(vagas|vaga|posicao|posicoes|cargo|cargos)|(vagas|vaga).*(ver|como|onde|listar)/.test(q))
+    return 'Para consultares as vagas em aberto, clica em **Vagas** no menu de navegação. Verás todas as posições publicadas com a localização, regime, skills exigidas, urgência e o teste associado a cada vaga. Podes também publicar novas vagas clicando em **+ Nova vaga**.';
+
+  // Criar teste
+  if(/(criar|novo|gerar|fazer|adicionar).*(teste|avaliacao|questoes|perguntas)|(teste).*(criar|novo|como)/.test(q))
+    return 'Para criar um teste, acede à página **Testes IA** no menu de navegação e clica em **+ Gerar novo teste**. Define a função, o nível hierárquico e o número de questões — a plataforma gera as perguntas automaticamente através de inteligência artificial. Podes também utilizar o modelo base de 10 questões comportamentais, disponível ao seleccionares "10 questões".';
+
+  // Ver candidatos / aprovados
+  if(/(ver|mostrar|listar|onde).*(candidatos|aprovados|reprovados|pendentes)|(candidatos).*(ver|como|onde)/.test(q))
+    return 'Para consultares os candidatos, clica em **Candidatos** no menu de navegação. Encontrarás a lista completa com pontuações, estados e avaliações de IA. Usa os filtros no topo para ver apenas os **Aprovados**, **Reprovados**, **Convidados** ou **Em avaliação**.';
+
+  // Foto de perfil / mudar nome
+  if(/(foto|imagem|avatar|perfil|nome).*(mudar|alterar|editar|trocar|atualizar|upload)|(mudar|alterar|editar).*(foto|imagem|avatar|perfil|nome)/.test(q))
+    return 'Para alterares a tua foto ou nome de perfil, clica no **teu nome** no canto superior direito do ecrã. Abre-se um painel lateral onde podes carregar uma nova fotografia clicando no ícone de lápis, e editar o teu nome no campo correspondente. Clica em **Guardar alterações** para confirmar.';
+
+  // Enviar convite / convidar candidato
+  if(/(enviar|mandar|criar).*(convite|convites|invite)|(convidar|adicionar).*(candidato)|candidato.*(convidar|adicionar|enviar)/.test(q))
+    return 'Para convidar um candidato, clica em **+ Adicionar candidato** no dashboard ou na página de Candidatos. Preenche o nome, o email, a vaga e o teste a realizar. O candidato ficará com o estado **Convidado** até aceitar. Para o convite ser enviado por email, configura o EmailJS clicando em **⚙ Email** na barra de topo.';
+
+  // Apagar candidato
+  if(/(apagar|eliminar|remover|deletar).*(candidato)|(candidato).*(apagar|eliminar|remover)/.test(q))
+    return 'Para remover um candidato, acede à página **Candidatos**, localiza o candidato na tabela e clica no botão **✕** à direita da linha. A acção é irreversível e remove também toda a actividade associada a esse candidato.';
+
+  // Criar vaga
+  if(/(criar|nova|adicionar|publicar).*(vaga|posicao|cargo)|(vaga).*(criar|nova|como)/.test(q))
+    return 'Para publicar uma nova vaga, acede à página **Vagas** no menu e clica em **+ Nova vaga**. Preenche o título, localização, regime de trabalho, urgência, skills necessárias e o teste associado. A vaga fica imediatamente disponível na plataforma.';
+
+  // Apagar teste
+  if(/(apagar|eliminar|remover|deletar).*(teste)|(teste).*(apagar|eliminar|remover)/.test(q))
+    return 'Para apagar um teste, acede à página **Testes IA**, clica no card do teste em questão para abrir os detalhes e clica em **Apagar este teste** no fundo do painel. Também podes clicar directamente no botão **✕** no canto superior direito de cada card.';
+
+  // Email / EmailJS / convite por email
+  if(/(email|emailjs|configurar|configuracao).*(email|convite|envio)|(envio).*(email|convite)/.test(q))
+    return 'Para activar o envio real de emails, clica em **⚙ Email** na barra de topo. Precisas de uma conta gratuita no EmailJS (emailjs.com), onde crias um serviço de email e um template. Depois inseres o **Public Key**, **Service ID** e **Template ID** na configuração da plataforma.';
+
+  // Dashboard / métricas
+  if(/(dashboard|metricas|resumo|estatisticas|numeros|overview)/.test(q))
+    return `O dashboard mostra em tempo real todas as métricas da tua actividade de recrutamento: candidatos activos, testes realizados, avaliações por IA e vagas abertas. Actualmente tens **${computeMetrics().activeCands} candidatos** e **${computeMetrics().activeJobs} vagas** abertas.`;
+
+  // Saudações
+  if(/^(ola|oi|bom dia|boa tarde|boa noite|hello|hi|hey)[\s!?.]*$/.test(q))
+    return `Olá! Sou o **RHC chatbot** e estou aqui para te ajudar a tirar o máximo partido da plataforma. Podes perguntar-me como criar testes, gerir candidatos, publicar vagas ou configurar convites por email.`;
+
+  // Obrigado
+  if(/(obrigad|thanks|thank you|valeu)/.test(q))
+    return 'De nada! Se precisares de mais alguma ajuda com a plataforma RHC, estou sempre disponível.';
+
+  return null; // no local match — try API
+}
+
+function getFallbackAnswer(msg) {
+  const q = msg.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  // Return a helpful generic message based on keywords
+  if(/(teste|candidato|vaga|perfil|convite|email|dashboard)/.test(q))
+    return 'Não consegui ligar ao servidor neste momento. Mas posso ajudar-te directamente: diz-me o que pretendes fazer — criar um teste, gerir candidatos, publicar uma vaga ou outra acção — e respondo com base no meu conhecimento da plataforma.';
+  return 'Neste momento não consigo aceder ao servidor. Tenta reformular a tua pergunta mencionando o que pretendes fazer na plataforma — como criar testes, gerir candidatos ou configurar convites.';
+}
+
+function appendChatMsg(text, type){
+  const msgs = document.getElementById('chat-msgs');
+  const div = document.createElement('div');
+  div.className=`chat-msg ${type}`;
+  // Render **bold** markdown
+  div.innerHTML = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+
+/* ============================================================
+   MODAL CLOSE ON BACKDROP
+   ============================================================ */
+document.querySelectorAll('.modal-bg').forEach(m=>{
+  m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); });
+});
+
+// Apply saved profile on page load
+applyProfile();
+
+// Init EmailJS (pré-configurado)
+try { emailjs.init({ publicKey: EJS_PUBKEY }); } catch(e) {}
+
+// Always show login screen — no auto-login
+</script>
